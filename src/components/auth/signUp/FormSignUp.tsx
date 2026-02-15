@@ -9,7 +9,7 @@ export default function FormSignUp() {
   const [showPassword, setShowPassword] = useState(false);
   return (
 
-    <div className="w-full max-w-sm justify-center flex flex-col gap-6 mt-4">
+    <div className="w-full max-w-sm justify-center flex flex-col mt-2">
       <FieldSet className="w-full">
         <FieldGroup>
           <Field className="w-full">
@@ -75,12 +75,12 @@ export default function FormSignUp() {
         </FieldGroup>
       </FieldSet>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center mt-4">
         <Button className="w-10/12 h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
           Sign Up
         </Button>
       </div>
-      <p className="mt-1 justify-center text-center font-normal text-muted-foreground text-sm">
+      <p className=" mt-3 justify-center text-center font-normal text-muted-foreground text-sm">
        Already have an account?{" "}
         <a
           href="/signin"
