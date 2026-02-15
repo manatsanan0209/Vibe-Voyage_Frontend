@@ -75,12 +75,12 @@ export default function FormSignUp() {
         </FieldGroup>
       </FieldSet>
 
-      <div className="flex justify-center mt-4">
+      <div className="flex justify-center mt-7">
         <Button className="w-10/12 h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
           Sign Up
         </Button>
       </div>
-      <p className=" mt-3 justify-center text-center font-normal text-muted-foreground text-sm">
+      <p className=" mt-4 justify-center text-center font-normal text-muted-foreground text-sm">
        Already have an account?{" "}
         <a
           href="/signin"
