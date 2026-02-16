@@ -1,6 +1,39 @@
+import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function Home() {
+  const [isSign, setIsSign] = useState(false)
+  
+  const validateToken = () => {
+    const token = localStorage.getItem('token')
+    const expiresAt = localStorage.getItem('expires_at')
+    console.log('isSignin:', isSign)
+
+    if (!token || !expiresAt) {
+      setIsSign(false)
+      return
+    }
+
+    const expiresMs = new Date(expiresAt).getTime()
+    const isValid = Date.now() < expiresMs
+
+    setIsSign(isValid)
+  }
+
+  useEffect(() => {
+    validateToken();
+  }, [])
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('expires_at')
+    localStorage.removeItem('user_id')
+    localStorage.removeItem('username')
+    localStorage.removeItem('remember_me')
+    setIsSign(false)
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10">
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
@@ -9,28 +42,28 @@ export default function Home() {
           Starter template with Tailwind + React Router
         </p>
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            to="/signin"
-            className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-white/90"
-          >
-            Go to Sign In
-          </Link>
-          <Link
-            to="/signup"
-            className="rounded-xl border border-white/15 px-4 py-2 text-sm text-white/80 hover:bg-white/5"
-          >
-            Go to Sign Up
-          </Link>
-          <a
-            href="https://reactrouter.com/en/main"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-white/15 px-4 py-2 text-sm text-white/80 hover:bg-white/5"
-          >
-            React Router Docs
-          </a>
-        </div>
+        {isSign ? (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <span>You are signed in!</span>
+            <Button variant="outline" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button>
+              <Link to="/signin">
+                Go to Sign In
+              </Link>
+            </Button>
+
+            <Button>
+              <Link to="/signup">
+                Go to Sign Up
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
