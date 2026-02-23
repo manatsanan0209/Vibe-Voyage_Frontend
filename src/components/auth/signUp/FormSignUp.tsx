@@ -1,15 +1,17 @@
-import { Field, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import axios from 'axios';
-import type { ApiErrorResponseDTO, ApiResponseDTO } from '@/types/api';
-import type { RegisterRequestDTO, RegisterResponseDTO } from '@/types/auth';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Field, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field';
+import type { ApiErrorResponseDTO } from '@/types/api';
+import type { RegisterRequestDTO } from '@/types/auth';
+import { useAuth } from '@/context/AuthContext';
 
 export default function FormSignUp() {
     const navigate = useNavigate();
+    const { register } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState('');
     const [form, setForm] = useState<RegisterRequestDTO>({
@@ -20,11 +22,6 @@ export default function FormSignUp() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-
-    const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(
-        /\/$/,
-        '',
-    );
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -48,17 +45,7 @@ export default function FormSignUp() {
         setIsSubmitting(true);
 
         try {
-            const { data } = await axios.post<
-                ApiResponseDTO<RegisterResponseDTO>
-            >(`${apiBaseUrl}/auth/register`, form);
-            const payload = data.data;
-
-            localStorage.setItem('token', payload.token);
-            localStorage.setItem('expires_at', payload.expires_at);
-            localStorage.setItem('user_id', String(payload.id));
-            localStorage.setItem('username', payload.username);
-            localStorage.setItem('remember_me', 'false');
-
+            await register(form);
             navigate('/');
         } catch (err) {
             if (axios.isAxiosError<ApiErrorResponseDTO>(err)) {

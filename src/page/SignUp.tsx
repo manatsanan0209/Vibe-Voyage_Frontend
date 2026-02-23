@@ -1,9 +1,9 @@
-import AuthLogo from '../components/auth/AuthLogo';
-import FormSignup from '../components/auth/signUp/FormSignUp';
-import { Button } from '@/components/ui/button';
 import { IoArrowBack } from 'react-icons/io5';
 import { useNavigate } from 'react-router-dom';
+import AuthLogo from '../components/auth/AuthLogo';
+import FormSignup from '../components/auth/signUp/FormSignUp';
 import bg from '../assets/bg.jpeg';
+import { Button } from '@/components/ui/button';
 
 export default function SignUp() {
     const navigate = useNavigate();

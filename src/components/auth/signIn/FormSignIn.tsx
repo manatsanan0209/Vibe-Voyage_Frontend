@@ -1,16 +1,16 @@
-import { Field, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Field, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import axios from 'axios';
-import type { ApiResponseDTO } from '@/types/api';
-import type { SigninRequestDTO, SigninResponseDTO } from '@/types/auth';
+import { useAuth } from '@/context/AuthContext';
+import type { SigninRequestDTO } from '@/types/auth';
 
 export default function FormSignIn() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [form, setForm] = useState<SigninRequestDTO>({
@@ -19,11 +19,6 @@ export default function FormSignIn() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-
-    const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(
-        /\/$/,
-        '',
-    );
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -37,17 +32,7 @@ export default function FormSignIn() {
         setIsSubmitting(true);
 
         try {
-            const { data } = await axios.post<
-                ApiResponseDTO<SigninResponseDTO>
-            >(`${apiBaseUrl}/auth/login`, form);
-            const payload = data.data;
-
-            localStorage.setItem('token', payload.token);
-            localStorage.setItem('expires_at', payload.expires_at);
-            localStorage.setItem('user_id', String(payload.id));
-            localStorage.setItem('username', payload.username);
-            localStorage.setItem('remember_me', String(rememberMe));
-
+            await login(form, rememberMe);
             navigate('/');
         } catch (err) {
             setError('Login failed. Please check your credentials.');
@@ -154,7 +139,7 @@ export default function FormSignIn() {
                 </Button>
             </div>
             <p className="mt-5 justify-center text-center font-normal text-muted-foreground text-sm">
-                Don’t have an account?{' '}
+                Don't have an account?{' '}
                 <a
                     href="/signup"
                     className="text-indigo-400 font-semibold hover:underline"
