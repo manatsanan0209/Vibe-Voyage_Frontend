@@ -1,26 +1,9 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
-    const [isSign, setIsSign] = useState(() => {
-        const token = localStorage.getItem('token');
-        const expiresAt = localStorage.getItem('expires_at');
-
-        if (!token || !expiresAt) return false;
-
-        const expiresMs = new Date(expiresAt).getTime();
-        return Date.now() < expiresMs;
-    });
-
-    const handleSignOut = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('expires_at');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('username');
-        localStorage.removeItem('remember_me');
-        setIsSign(false);
-    };
+    const { isAuthenticated, logout } = useAuth();
 
     return (
         <div className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -32,10 +15,10 @@ export default function Home() {
                     Starter template with Tailwind + React Router
                 </p>
 
-                {isSign ? (
+                {isAuthenticated ? (
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                         <span>You are signed in!</span>
-                        <Button variant="outline" onClick={handleSignOut}>
+                        <Button variant="outline" onClick={logout}>
                             Sign Out
                         </Button>
                     </div>
