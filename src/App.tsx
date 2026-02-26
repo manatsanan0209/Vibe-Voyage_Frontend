@@ -17,6 +17,10 @@ export function App() {
                 <Route element={<MainLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<AboutUs />} />
+                    <Route
+                        path="/tripinformation"
+                        element={<TripInformForm />}
+                    />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/profile" element={<Profile />} />
@@ -26,14 +30,6 @@ export function App() {
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="*" element={<NotFound />} />
-
-                <Route element={<ProtectedRoute />}>
-                    <Route path="/profile" element={<Profile />} />
-                    <Route
-                        path="/tripinformation"
-                        element={<TripInformForm />}
-                    />
-                </Route>
             </Routes>
         </AuthProvider>
     );
