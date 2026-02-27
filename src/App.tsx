@@ -6,6 +6,7 @@ import SignIn from './page/SignIn';
 import SignUp from './page/SignUp';
 import AboutUs from './page/AboutUs';
 import TripInformForm from './page/TripInformForm';
+import MyTrips from './page/MyTrips';
 import MainLayout from '@/components/layout/MainLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -24,6 +25,7 @@ export function App() {
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/my-trips" element={<MyTrips />} />
                     </Route>
                 </Route>
 

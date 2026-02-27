@@ -6,6 +6,8 @@ import { DestinationSelect } from './DestinationSelect';
 import { PreferredDestinations } from './PreferredDestinations';
 import map from '@/assets/map.png';
 import location from '@/assets/location.png';
+import type { ApiResponseDTO } from '@/types/api';
+import type { District } from '@/types/place';
 
 type Destination = {
     value: string;
@@ -17,29 +19,54 @@ type Place = {
     label: string;
 };
 
-// TODO: replace with API call when backend is ready
-const MOCK_DESTINATIONS: Destination[] = [
-    { value: 'phetchaburi', label: 'Phetchaburi' },
-    { value: 'pattaya', label: 'Pattaya' },
-    { value: 'chiang-mai', label: 'Chiang Mai' },
-    { value: 'phuket', label: 'Phuket' },
-    { value: 'krabi', label: 'Krabi' },
-];
-
 export default function InformationForm() {
     const [destination, setDestination] = useState('');
     const [destinations, setDestinations] = useState<Destination[]>([]);
+    const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
     const [startDate, setStartDate] = useState<Date | undefined>(undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
     const [preferredPlaces, setPreferredPlaces] = useState<Place[]>([]);
 
     useEffect(() => {
         const fetchDestinations = async () => {
-            // TODO: swap with actual API call when backend is ready, e.g.:
-            // const res = await fetch('/api/destinations');
-            // const data = await res.json();
-            // setDestinations(data);
-            setDestinations(MOCK_DESTINATIONS);
+            setIsLoadingDestinations(true);
+            try {
+                const res = await fetch(
+                    'http://localhost:8080/api/places/districts',
+                );
+                const json: ApiResponseDTO<District[]> = await res.json();
+
+                // Deduplicate provinces for province-only entries
+                const seenProvinces = new Map<string, string>();
+                json.data.forEach((d) => {
+                    if (!seenProvinces.has(d.province.province_id)) {
+                        seenProvinces.set(
+                            d.province.province_id,
+                            d.province.province_name_th,
+                        );
+                    }
+                });
+                const provinceEntries: Destination[] = Array.from(
+                    seenProvinces.entries(),
+                )
+                    .sort((a, b) => a[1].localeCompare(b[1], 'th'))
+                    .map(([id, name]) => ({
+                        value: `province_${id}`,
+                        label: name,
+                    }));
+
+                // District entries formatted as "district, province"
+                const districtEntries: Destination[] = json.data.map((d) => ({
+                    value: d.district_id,
+                    label: `${d.district_name_th}, ${d.province.province_name_th}`,
+                }));
+
+                setDestinations([...provinceEntries, ...districtEntries]);
+            } catch (err) {
+                console.error('Failed to fetch districts:', err);
+            } finally {
+                setIsLoadingDestinations(false);
+            }
         };
         fetchDestinations();
     }, []);
@@ -81,6 +108,7 @@ export default function InformationForm() {
                     destinations={destinations}
                     value={destination}
                     onChange={setDestination}
+                    isLoading={isLoadingDestinations}
                 />
 
                 <p className="text-base font-semibold sm:text-right">Day</p>
