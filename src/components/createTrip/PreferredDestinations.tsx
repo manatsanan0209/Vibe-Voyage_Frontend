@@ -13,8 +13,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import type { ApiResponseDTO } from '@/types/api';
-import type { Attraction } from '@/types/place';
+import { placeService } from '@/services/place.service';
 
 type Place = {
     value: string;
@@ -39,15 +38,8 @@ export function PreferredDestinations({
         if (!query.trim()) return;
         setIsLoading(true);
         try {
-            const res = await fetch(
-                `http://localhost:8080/api/attractions/search?name=${encodeURIComponent(query)}&fields=name_th,id`,
-            );
-            const json: ApiResponseDTO<Attraction[]> = await res.json();
-            const mapped: Place[] = json.data.map((a) => ({
-                value: a.id,
-                label: a.name_th,
-            }));
-            setSearchResults(mapped);
+            const results = await placeService.searchAttractions(query);
+            setSearchResults(results);
         } catch (err) {
             console.error('Failed to fetch attractions:', err);
             setSearchResults([]);

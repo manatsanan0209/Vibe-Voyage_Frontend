@@ -6,13 +6,7 @@ import { DestinationSelect } from './DestinationSelect';
 import { PreferredDestinations } from './PreferredDestinations';
 import map from '@/assets/map.png';
 import location from '@/assets/location.png';
-import type { ApiResponseDTO } from '@/types/api';
-import type { District } from '@/types/place';
-
-type Destination = {
-    value: string;
-    label: string;
-};
+import { placeService, type DestinationOption } from '@/services/place.service';
 
 type Place = {
     value: string;
@@ -25,7 +19,7 @@ interface InformationFormProps {
 
 export default function InformationForm({ onNext }: InformationFormProps) {
     const [destination, setDestination] = useState('');
-    const [destinations, setDestinations] = useState<Destination[]>([]);
+    const [destinations, setDestinations] = useState<DestinationOption[]>([]);
     const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
     const [startDate, setStartDate] = useState<Date | undefined>(undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -35,37 +29,8 @@ export default function InformationForm({ onNext }: InformationFormProps) {
         const fetchDestinations = async () => {
             setIsLoadingDestinations(true);
             try {
-                const res = await fetch(
-                    'http://localhost:8080/api/places/districts',
-                );
-                const json: ApiResponseDTO<District[]> = await res.json();
-
-                // Deduplicate provinces for province-only entries
-                const seenProvinces = new Map<string, string>();
-                json.data.forEach((d) => {
-                    if (!seenProvinces.has(d.province.province_id)) {
-                        seenProvinces.set(
-                            d.province.province_id,
-                            d.province.province_name_th,
-                        );
-                    }
-                });
-                const provinceEntries: Destination[] = Array.from(
-                    seenProvinces.entries(),
-                )
-                    .sort((a, b) => a[1].localeCompare(b[1], 'th'))
-                    .map(([id, name]) => ({
-                        value: `province_${id}`,
-                        label: name,
-                    }));
-
-                // District entries formatted as "district, province"
-                const districtEntries: Destination[] = json.data.map((d) => ({
-                    value: d.district_id,
-                    label: `${d.district_name_th}, ${d.province.province_name_th}`,
-                }));
-
-                setDestinations([...provinceEntries, ...districtEntries]);
+                const result = await placeService.fetchDistricts();
+                setDestinations(result);
             } catch (err) {
                 console.error('Failed to fetch districts:', err);
             } finally {
