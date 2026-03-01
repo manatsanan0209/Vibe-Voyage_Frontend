@@ -57,12 +57,12 @@ export default function LeftNavbar() {
         : baseNavItems;
 
     return (
-        <Sidebar className="shadow-xl" collapsible="offcanvas">
+        <Sidebar className="shadow-xl" collapsible="icon">
             <SidebarHeader className="pt-5 pb-0">
                 <NavLogo />
             </SidebarHeader>
 
-            <SidebarContent className="mt-6 px-4">
+            <SidebarContent className="mt-6 px-4 group-data-[collapsible=icon]:mt-4 group-data-[collapsible=icon]:px-2">
                 <SidebarMenu className="gap-8">
                     {navItems.map((item) => (
                         <NavItem key={item.to} {...item} />

@@ -6,6 +6,7 @@ import SignIn from './page/SignIn';
 import SignUp from './page/SignUp';
 import AboutUs from './page/AboutUs';
 import TripInformForm from './page/TripInformForm';
+import CreateRoom from './page/CrateRoom';
 import MainLayout from '@/components/layout/MainLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -17,13 +18,14 @@ export function App() {
                 <Route element={<MainLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<AboutUs />} />
-                    <Route
-                        path="/tripinformation"
-                        element={<TripInformForm />}
-                    />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/createroom" element={<CreateRoom />} />
+                        <Route
+                            path="/tripinformation"
+                            element={<TripInformForm />}
+                        />
                     </Route>
                 </Route>
 

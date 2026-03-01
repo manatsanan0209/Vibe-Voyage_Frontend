@@ -17,15 +17,21 @@ export default function NavItem({ icon, iconFocus, label, to }: NavItemProps) {
             <SidebarMenuButton
                 asChild
                 isActive={isActive}
-                className="h-10.75 rounded-none px-6 font-bold text-sm transition-all duration-200 hover:rounded-[20px] data-[active=true]:rounded-[20px] data-[active=true]:bg-[#4c3d79]! data-[active=true]:text-white! data-[active=true]:shadow-[0px_4px_5px_0px_rgba(76,61,121,0.3)]"
+                tooltip={label}
+                className="h-10.75 rounded-none px-6 font-bold text-sm transition-all duration-200 hover:rounded-4xl data-[active=true]:rounded-4xl data-[active=true]:bg-[#4c3d79]! data-[active=true]:text-white! data-[active=true]:shadow-[0px_4px_5px_0px_rgba(76,61,121,0.3)] group-data-[collapsible=icon]:h-10.75! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-0! group-data-[collapsible=icon]:justify-center!"
             >
-                <Link to={to}>
+                <Link
+                    to={to}
+                    className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center"
+                >
                     <img
                         src={isActive ? iconFocus : icon}
                         alt={label}
                         className="size-5 shrink-0"
                     />
-                    <span className="text-md">{label}</span>
+                    <span className="text-md group-data-[collapsible=icon]:hidden">
+                        {label}
+                    </span>
                 </Link>
             </SidebarMenuButton>
         </SidebarMenuItem>
