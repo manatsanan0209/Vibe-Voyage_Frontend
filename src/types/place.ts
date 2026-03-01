@@ -1,3 +1,14 @@
+export type LatLngLiteral = {
+    lat: number;
+    lng: number;
+};
+
+export type PlaceSuggestion = {
+    id: string;
+    name: string;
+    address: string;
+    location: LatLngLiteral;
+};
 export interface Region {
     region_id: string;
     region_name_th: string;

@@ -6,7 +6,12 @@ import LeftNavbar from '@/components/navbar/LeftNavbar';
 export default function MainLayout() {
     return (
         <SidebarProvider
-            style={{ '--sidebar-width': '14.1875rem' } as React.CSSProperties}
+            style={
+                {
+                    '--sidebar-width': '14.1875rem',
+                    '--sidebar-width-icon': '6rem',
+                } as React.CSSProperties
+            }
         >
             <LeftNavbar />
             <SidebarInset>

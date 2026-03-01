@@ -6,6 +6,7 @@ import SignIn from './page/SignIn';
 import SignUp from './page/SignUp';
 import AboutUs from './page/AboutUs';
 import TripInformForm from './page/TripInformForm';
+import CreateRoom from './page/CrateRoom';
 import CreateTripPage from './page/CreateTrip';
 import MyTrips from './page/MyTrips';
 import MainLayout from '@/components/layout/MainLayout';
@@ -19,10 +20,6 @@ export function App() {
                 <Route element={<MainLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<AboutUs />} />
-                    <Route
-                        path="/tripinformation"
-                        element={<TripInformForm />}
-                    />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/profile" element={<Profile />} />
@@ -30,6 +27,11 @@ export function App() {
                         <Route
                             path="/create-trip"
                             element={<CreateTripPage />}
+                        />
+                        <Route path="/createroom" element={<CreateRoom />} />
+                        <Route
+                            path="/tripinformation"
+                            element={<TripInformForm />}
                         />
                     </Route>
                 </Route>
