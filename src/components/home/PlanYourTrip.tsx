@@ -26,12 +26,12 @@ export default function PlanYourTrip() {
     };
 
     return (
-        <div className="w-full rounded-4xl bg-[#F9F8FD] px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center gap-3">
+        <div className="w-full rounded-4xl bg-violet-50 px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center gap-3">
             {/* Heading */}
-            <h2 className="text-[24px] font-bold leading-tight text-[#160350]">
+            <h2 className="text-2xl font-bold leading-tight text-indigo-950">
                 Plan your new trip
             </h2>
-            <p className="text-[14px] font-normal text-[#4C3D79]">
+            <p className="text-sm font-normal text-purple-800">
                 Curate moments. Create your vibe. Begin your voyage.
             </p>
 
@@ -41,8 +41,8 @@ export default function PlanYourTrip() {
                 <div className="flex items-center gap-3 sm:gap-4">
                     {/* Label column — fixed width so both rows align */}
                     <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
-                        <MapPin className="size-5 text-[#523FFF]" />
-                        <span className="text-[14px] font-semibold text-[#202020]">
+                        <MapPin className="size-5 text-indigo-600" />
+                        <span className="text-sm font-semibold text-gray-900">
                             Where to ?
                         </span>
                     </div>
@@ -58,7 +58,7 @@ export default function PlanYourTrip() {
                                 if (e.target.value.trim()) setShowError(false);
                             }}
                             placeholder="e.g. Phetchaburi , pattaya"
-                            className="w-full h-10.5 rounded-[5px] border border-[#B2B2B2] bg-white px-4 text-[13px] text-[#707070] placeholder:text-[#707070] focus:outline-none focus:border-[#523FFF] focus:ring-1 focus:ring-[#523FFF]"
+                            className="w-full h-10.5 rounded-md border border-gray-400 bg-white px-4 text-xs text-gray-500 placeholder:text-gray-500 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                         />
                     </div>
                 </div>
@@ -67,15 +67,15 @@ export default function PlanYourTrip() {
                 <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                     {/* Label column — same width as destination row */}
                     <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5 pt-3 sm:pt-0">
-                        <CalendarDays className="size-5 text-[#523FFF]" />
-                        <span className="text-[14px] font-semibold text-[#202020]">
+                        <CalendarDays className="size-5 text-indigo-600" />
+                        <span className="text-sm font-semibold text-gray-900">
                             Day
                         </span>
                     </div>
                     <div className="flex flex-col sm:flex-row flex-1 gap-3">
                         {/* Start date */}
                         <div className="relative flex-1">
-                            <label className="absolute -top-2.5 left-3 bg-[#F9F8FD] px-1 text-[13px] text-[#707070] leading-none">
+                            <label className="absolute -top-2.5 left-3 bg-violet-50 px-1 text-xs text-gray-500 leading-none">
                                 Start date
                             </label>
                             <input
@@ -87,17 +87,17 @@ export default function PlanYourTrip() {
                                         startDate: e.target.value,
                                     }))
                                 }
-                                className="w-full h-10.5 rounded-[5px] border border-[#B2B2B2] bg-white px-3 text-[14px] font-semibold text-[#202020] focus:outline-none focus:border-[#523FFF] focus:ring-1 focus:ring-[#523FFF]"
+                                className="w-full h-10.5 rounded-md border border-gray-400 bg-white px-3 text-sm font-semibold text-gray-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                             />
                         </div>
 
-                        <span className="text-[14px] font-semibold text-[#202020] shrink-0 self-center">
+                        <span className="text-sm font-semibold text-gray-900 shrink-0 self-center">
                             To
                         </span>
 
                         {/* End date */}
                         <div className="relative flex-1">
-                            <label className="absolute -top-2.5 left-3 bg-[#F9F8FD] px-1 text-[13px] text-[#707070] leading-none">
+                            <label className="absolute -top-2.5 left-3 bg-violet-50 px-1 text-xs text-gray-500 leading-none">
                                 End date
                             </label>
                             <input
@@ -109,7 +109,7 @@ export default function PlanYourTrip() {
                                         endDate: e.target.value,
                                     }))
                                 }
-                                className="w-full h-10.5 rounded-[5px] border border-[#B2B2B2] bg-white px-3 text-[14px] font-semibold text-[#202020] focus:outline-none focus:border-[#523FFF] focus:ring-1 focus:ring-[#523FFF]"
+                                className="w-full h-10.5 rounded-md border border-gray-400 bg-white px-3 text-sm font-semibold text-gray-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                             />
                         </div>
                     </div>
@@ -118,7 +118,7 @@ export default function PlanYourTrip() {
 
             {/* Error message */}
             {showError && (
-                <p className="text-[12px] font-light text-[#F6373A]">
+                <p className="text-xs font-light text-red-500">
                     * Choose a destination to start planning
                 </p>
             )}
@@ -126,7 +126,7 @@ export default function PlanYourTrip() {
             {/* Plan button */}
             <Button
                 onClick={handlePlan}
-                className="mt-5 w-full sm:w-53.5 h-8.25 rounded-[7px] bg-[#523FFF] font-extrabold text-[15px] text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-[20px] hover:bg-[#4230e0] hover:shadow-none"
+                className="mt-5 w-full sm:w-53.5 h-8.25 rounded-lg bg-indigo-600 font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-indigo-700 hover:shadow-none"
             >
                 Plan
             </Button>

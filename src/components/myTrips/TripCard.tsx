@@ -22,7 +22,7 @@ export default function TripCard({
     const overflowCount = collaborators.length - MAX_VISIBLE_AVATARS;
 
     return (
-        <div className="w-full rounded-[10px] border border-[#6F78FF] bg-white overflow-hidden flex flex-col">
+        <div className="w-full rounded-lg border border-indigo-400 bg-white overflow-hidden flex flex-col">
             {/* Image section */}
             <div className="w-full aspect-183/90 overflow-hidden">
                 <img
@@ -34,12 +34,12 @@ export default function TripCard({
 
             {/* Info section */}
             <div className="px-2.5 pt-2 pb-2.5 flex flex-col gap-1">
-                <p className="text-[14px] font-bold text-[#4C3D79] truncate leading-tight">
+                <p className="text-sm font-bold text-purple-800 truncate leading-tight">
                     {name}
                 </p>
 
                 <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#4C3D79]">
+                    <span className="text-xs text-purple-800">
                         {lastEdited}
                     </span>
 
@@ -55,7 +55,7 @@ export default function TripCard({
                         ))}
 
                         {overflowCount > 0 && (
-                            <div className="size-5.75 rounded-full bg-[#F637AF] border-2 border-white -ml-1.75 flex items-center justify-center text-white font-semibold text-[11px] shrink-0">
+                            <div className="size-5.75 rounded-full bg-pink-500 border-2 border-white -ml-1.75 flex items-center justify-center text-white font-semibold text-xs shrink-0">
                                 +{overflowCount}
                             </div>
                         )}

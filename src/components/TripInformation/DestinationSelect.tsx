@@ -49,7 +49,9 @@ export function DestinationSelect({
                     className="w-full h-10 bg-white justify-between font-normal"
                 >
                     {isLoading ? (
-                        <span className="text-muted-foreground">Loading...</span>
+                        <span className="text-muted-foreground">
+                            Loading...
+                        </span>
                     ) : selectedLabel ? (
                         selectedLabel
                     ) : (
@@ -62,10 +64,7 @@ export function DestinationSelect({
             </PopoverTrigger>
             <PopoverContent>
                 <Command>
-                    <CommandInput
-                        placeholder="ค้นหาอำเภอ..."
-                        className="h-9"
-                    />
+                    <CommandInput placeholder="ค้นหาอำเภอ..." className="h-9" />
                     <CommandList>
                         <CommandEmpty>ไม่พบอำเภอที่ค้นหา</CommandEmpty>
                         <CommandGroup>

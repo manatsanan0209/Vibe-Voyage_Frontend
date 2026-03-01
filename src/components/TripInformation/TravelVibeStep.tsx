@@ -1,12 +1,5 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -85,7 +78,7 @@ const FOOD_VIBES = [
     },
 ];
 
-// ---------- VibeCard — P1 (full-width card + circle image placeholder) ----------
+// ---------- VibeCard ----------
 
 interface CardProps {
     id: string;
@@ -120,7 +113,7 @@ function VibeCard({ id, label, labelTH, checked, onChange }: CardProps) {
     );
 }
 
-// ---------- CircleCheckItem — P2 Q1 (radio-style circle, no card border) ----------
+// ---------- CircleCheckItem ----------
 
 function CircleCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
     return (
@@ -153,7 +146,7 @@ function CircleCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
     );
 }
 
-// ---------- SquareCheckItem — P2 Q2 (square checkbox, no card border) ----------
+// ---------- SquareCheckItem ----------
 
 function SquareCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
     return (
@@ -236,114 +229,97 @@ function toggle(list: string[], id: string): string[] {
 
 // ---------- form state ----------
 
-interface FormData {
+export interface VibeFormData {
     vibes: string[];
     priorities: string[];
     foodVibes: string[];
     extra: string;
 }
 
-const INITIAL: FormData = {
+const INITIAL: VibeFormData = {
     vibes: [],
     priorities: [],
     foodVibes: [],
     extra: '',
 };
 
+// ---------- TravelVibeStep props ----------
+
+interface TravelVibeStepProps {
+    /** Called when user clicks Back on vibe page 1 → returns to trip info step */
+    onBack: () => void;
+    /** Called when user submits the completed questionnaire */
+    onSubmit: (form: VibeFormData) => void;
+}
+
 // ---------- main component ----------
 
-export default function TravelVibeModal() {
-    const [open, setOpen] = useState(false);
+export default function TravelVibeStep({
+    onBack,
+    onSubmit,
+}: TravelVibeStepProps) {
     const [page, setPage] = useState<1 | 2>(1);
-    const [form, setForm] = useState<FormData>(INITIAL);
-
-    function handleOpenChange(next: boolean) {
-        if (!next) {
-            setPage(1);
-            setForm(INITIAL);
-        }
-        setOpen(next);
-    }
+    const [form, setForm] = useState<VibeFormData>(INITIAL);
 
     function handleSubmit() {
-        console.log('Travel Vibe Questionnaire:', form);
-        handleOpenChange(false);
+        onSubmit(form);
     }
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                <Button className="rounded-lg bg-indigo-600 font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-indigo-700 hover:shadow-none px-6 h-8.25">
-                    เริ่มทำแบบสอบถาม
-                </Button>
-            </DialogTrigger>
+        <div className="w-full flex flex-col gap-6">
+            {/* Title */}
+            <p className="text-center text-xl font-semibold text-gray-900">
+                Vibe Voyage — Your Travel Style
+            </p>
 
-            <DialogContent className="sm:max-w-[840px] w-full rounded-lg px-4 py-6 sm:px-10 sm:py-8 gap-4 shadow-[5px_7px_8px_0px_rgba(0,0,0,0.25),0px_1px_4px_0px_rgba(0,0,0,0.25)]">
-                {/* Back arrow — page 2 only, top-left per Figma */}
-                {page === 2 && (
-                    <button
-                        onClick={() => setPage(1)}
-                        className="absolute left-5 top-5 flex items-center gap-1 text-purple-500 hover:text-indigo-600 transition-colors focus:outline-none"
-                        aria-label="Back to page 1"
-                    >
-                        <ArrowLeft className="size-4" />
-                        <span className="text-xs font-medium">Back</span>
-                    </button>
-                )}
-
-                <DialogHeader>
-                    <DialogTitle className="text-center text-xl font-semibold text-gray-900 py-2">
-                        Vibe Voyage — Your Travel Style
-                    </DialogTitle>
-                </DialogHeader>
-
-                {page === 1 ? (
-                    <Page1
-                        vibes={form.vibes}
-                        onChange={(id) =>
-                            setForm((f) => ({
-                                ...f,
-                                vibes: toggle(f.vibes, id),
-                            }))
-                        }
-                        onNext={() => setPage(2)}
-                    />
-                ) : (
-                    <Page2
-                        priorities={form.priorities}
-                        onPriority={(id) =>
-                            setForm((f) => ({
-                                ...f,
-                                priorities: toggle(f.priorities, id),
-                            }))
-                        }
-                        foodVibes={form.foodVibes}
-                        onFood={(id) =>
-                            setForm((f) => ({
-                                ...f,
-                                foodVibes: toggle(f.foodVibes, id),
-                            }))
-                        }
-                        extra={form.extra}
-                        onExtra={(v) => setForm((f) => ({ ...f, extra: v }))}
-                        onBack={() => setPage(1)}
-                        onSubmit={handleSubmit}
-                    />
-                )}
-            </DialogContent>
-        </Dialog>
+            {page === 1 ? (
+                <VibePage1
+                    vibes={form.vibes}
+                    onChange={(id) =>
+                        setForm((f) => ({
+                            ...f,
+                            vibes: toggle(f.vibes, id),
+                        }))
+                    }
+                    onBack={onBack}
+                    onNext={() => setPage(2)}
+                />
+            ) : (
+                <VibePage2
+                    priorities={form.priorities}
+                    onPriority={(id) =>
+                        setForm((f) => ({
+                            ...f,
+                            priorities: toggle(f.priorities, id),
+                        }))
+                    }
+                    foodVibes={form.foodVibes}
+                    onFood={(id) =>
+                        setForm((f) => ({
+                            ...f,
+                            foodVibes: toggle(f.foodVibes, id),
+                        }))
+                    }
+                    extra={form.extra}
+                    onExtra={(v) => setForm((f) => ({ ...f, extra: v }))}
+                    onBack={() => setPage(1)}
+                    onSubmit={handleSubmit}
+                />
+            )}
+        </div>
     );
 }
 
-// ---------- Page 1 ----------
+// ---------- VibePage1 ----------
 
-interface Page1Props {
+interface VibePage1Props {
     vibes: string[];
     onChange: (id: string) => void;
+    onBack: () => void;
     onNext: () => void;
 }
 
-function Page1({ vibes, onChange, onNext }: Page1Props) {
+function VibePage1({ vibes, onChange, onBack, onNext }: VibePage1Props) {
     return (
         <div className="flex flex-col gap-6">
             <QuestionHeader
@@ -352,7 +328,7 @@ function Page1({ vibes, onChange, onNext }: Page1Props) {
                 note="* Choose all that match you"
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                 {VIBES.map((v) => (
                     <VibeCard
                         key={v.id}
@@ -365,7 +341,15 @@ function Page1({ vibes, onChange, onNext }: Page1Props) {
                 ))}
             </div>
 
-            <div className="flex justify-end pt-1">
+            <div className="flex items-center justify-between pt-1">
+                <button
+                    type="button"
+                    onClick={onBack}
+                    className="flex items-center gap-1 text-purple-500 hover:text-indigo-600 transition-colors focus:outline-none"
+                >
+                    <ArrowLeft className="size-4" />
+                    <span className="text-xs font-medium">Back</span>
+                </button>
                 <Button
                     onClick={onNext}
                     className="w-29 h-7.5 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 shadow-none"
@@ -377,9 +361,9 @@ function Page1({ vibes, onChange, onNext }: Page1Props) {
     );
 }
 
-// ---------- Page 2 ----------
+// ---------- VibePage2 ----------
 
-interface Page2Props {
+interface VibePage2Props {
     priorities: string[];
     onPriority: (id: string) => void;
     foodVibes: string[];
@@ -390,18 +374,19 @@ interface Page2Props {
     onSubmit: () => void;
 }
 
-function Page2({
+function VibePage2({
     priorities,
     onPriority,
     foodVibes,
     onFood,
     extra,
     onExtra,
+    onBack,
     onSubmit,
-}: Page2Props) {
+}: VibePage2Props) {
     return (
-        <div className="flex flex-col gap-3">
-            {/* Q1 — circle indicator (radio-style) */}
+        <div className="flex flex-col gap-6">
+            {/* Q1 */}
             <div className="flex flex-col gap-2">
                 <QuestionHeader
                     question="On your voyage, what matters most to you?"
@@ -422,7 +407,7 @@ function Page2({
                 </div>
             </div>
 
-            {/* Q2 — square indicator (checkbox-style) */}
+            {/* Q2 */}
             <div className="flex flex-col gap-2">
                 <QuestionHeader
                     question="What food vibe do you enjoy when you travel?"
@@ -443,7 +428,7 @@ function Page2({
                 </div>
             </div>
 
-            {/* Q3 — optional textarea */}
+            {/* Q3 */}
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -467,8 +452,16 @@ function Page2({
                 />
             </div>
 
-            {/* submit — right-aligned per Figma */}
-            <div className="flex justify-end pt-0">
+            {/* Submit */}
+            <div className="flex items-center justify-between pt-1">
+                <button
+                    type="button"
+                    onClick={onBack}
+                    className="flex items-center gap-1 text-purple-500 hover:text-indigo-600 transition-colors focus:outline-none"
+                >
+                    <ArrowLeft className="size-4" />
+                    <span className="text-xs font-medium">Back</span>
+                </button>
                 <Button
                     onClick={onSubmit}
                     className="w-29 h-7.5 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 shadow-none"

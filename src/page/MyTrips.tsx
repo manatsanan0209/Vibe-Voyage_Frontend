@@ -81,8 +81,8 @@ const mockTrips: MockTrip[] = [
 export default function MyTrips() {
     return (
         <main className="flex flex-col gap-6 sm:gap-8 px-4 sm:px-8 pb-12">
-            <div className="w-full rounded-[20px] bg-[#F9F8FD] px-4 sm:px-8 py-6 sm:py-8">
-                <h1 className="text-[24px] font-bold text-[#160350] mb-6">
+            <div className="w-full rounded-4xl bg-violet-50 px-4 sm:px-8 py-6 sm:py-8">
+                <h1 className="text-2xl font-bold text-indigo-950 mb-6">
                     My Trip
                 </h1>
 

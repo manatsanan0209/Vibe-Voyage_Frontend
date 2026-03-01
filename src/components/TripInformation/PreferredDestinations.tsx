@@ -96,10 +96,10 @@ export function PreferredDestinations({
                             <Plus size={18} />
                         </button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-72" align="start">
+                    <PopoverContent className="p-0 w-96" align="start">
                         <Command shouldFilter={false}>
                             <CommandInput
-                                placeholder="พิมพ์แล้วกด Enter เพื่อค้นหา..."
+                                placeholder="Type a place name and press 'Enter' to search"
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
                                 onKeyDown={(e) => {
@@ -112,16 +112,16 @@ export function PreferredDestinations({
                             <CommandList>
                                 {isLoading && (
                                     <div className="py-6 text-center text-sm text-muted-foreground">
-                                        กำลังค้นหา...
+                                        Searching
                                     </div>
                                 )}
                                 {showHint && (
                                     <CommandEmpty>
-                                        พิมพ์ชื่อสถานที่แล้วกด Enter
+                                        Press 'Enter' to search for attractions
                                     </CommandEmpty>
                                 )}
                                 {showEmpty && (
-                                    <CommandEmpty>ไม่พบสถานที่</CommandEmpty>
+                                    <CommandEmpty>No places found</CommandEmpty>
                                 )}
                                 {!isLoading && available.length > 0 && (
                                     <CommandGroup>

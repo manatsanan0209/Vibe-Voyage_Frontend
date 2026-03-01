@@ -73,7 +73,7 @@ function TripCard({ trip }: { trip: PopularTrip }) {
     return (
         <div className="flex flex-col gap-2 w-full">
             {/* Image grid */}
-            <div className="grid grid-cols-2 gap-1 rounded-[10px] overflow-hidden w-full aspect-[183/125]">
+            <div className="grid grid-cols-2 gap-1 rounded-lg overflow-hidden w-full aspect-[183/125]">
                 {trip.images.map((src, i) => (
                     <img
                         key={i}
@@ -86,10 +86,10 @@ function TripCard({ trip }: { trip: PopularTrip }) {
 
             {/* Rank + title row */}
             <div className="flex items-baseline gap-1">
-                <span className="text-[48px] font-bold leading-none text-[#6F78FF]">
+                <span className="text-5xl font-bold leading-none text-indigo-400">
                     {trip.rank}.
                 </span>
-                <span className="text-[20px] font-bold text-[#4C3D79] leading-tight">
+                <span className="text-xl font-bold text-purple-800 leading-tight">
                     {trip.title}
                 </span>
             </div>
@@ -101,10 +101,10 @@ function TripCard({ trip }: { trip: PopularTrip }) {
                     alt={trip.author}
                     className="size-5.75 rounded-full object-cover shrink-0"
                 />
-                <span className="text-[12px] text-[#565759] flex-1 truncate">
+                <span className="text-xs text-gray-500 flex-1 truncate">
                     {trip.author}
                 </span>
-                <span className="text-[12px] text-[#565759] shrink-0">
+                <span className="text-xs text-gray-500 shrink-0">
                     {trip.views}
                 </span>
             </div>
@@ -116,7 +116,7 @@ export default function PopularTrips() {
     return (
         <div className="w-full flex flex-col gap-6">
             {/* Title */}
-            <h2 className="text-[24px] font-bold text-[#4C3D79]">
+            <h2 className="text-2xl font-bold text-purple-800">
                 Popular Trip
             </h2>
 
@@ -129,7 +129,7 @@ export default function PopularTrips() {
 
             {/* See more button */}
             <div className="flex justify-center">
-                <Button className="w-full sm:w-53.5 h-8.25 rounded-[7px] bg-[#523FFF] font-extrabold text-[15px] text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-[20px] hover:bg-[#4230e0] hover:shadow-none">
+                <Button className="w-full sm:w-53.5 h-8.25 rounded-lg bg-indigo-600 font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-indigo-700 hover:shadow-none">
                     See more
                 </Button>
             </div>
