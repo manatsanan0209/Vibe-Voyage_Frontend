@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { DatePickerInput } from '@/components/TripInformation/DatePickerInput';
-import { DestinationSelect } from '@/components/TripInformation/DestinationSelect';
-import { PreferredDestinations } from '@/components/TripInformation/PreferredDestinations';
+import { DatePickerInput } from '@/components/createTrip/DatePickerInput';
+import { DestinationSelect } from '@/components/createTrip/DestinationSelect';
+import { PreferredDestinations } from '@/components/createTrip/PreferredDestinations';
 import map from '@/assets/map.png';
 import location from '@/assets/location.png';
 import type { ApiResponseDTO } from '@/types/api';

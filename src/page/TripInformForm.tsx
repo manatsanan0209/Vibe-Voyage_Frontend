@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import InformationForm from '@/components/TripInformation/InformationForm';
+import InformationForm from '@/components/createTrip/InformationForm';
 import TravelVibeStep, {
     type VibeFormData,
-} from '@/components/TripInformation/TravelVibeStep';
+} from '@/components/createTrip/TravelVibeStep';
 
 export default function TripInformForm() {
     const [step, setStep] = useState<1 | 2>(1);
