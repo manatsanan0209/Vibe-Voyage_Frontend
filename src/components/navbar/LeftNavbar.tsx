@@ -46,7 +46,7 @@ const yourTripsItem = {
     icon: yourTripsIcon,
     iconFocus: yourTripIconFocus,
     label: 'Your Trips',
-    to: '/my-trips',
+    to: '/your-trips',
 };
 
 export default function LeftNavbar() {

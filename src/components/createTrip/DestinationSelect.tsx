@@ -25,14 +25,18 @@ type DestinationSelectProps = {
     destinations: Destination[];
     value: string;
     onChange: (value: string) => void;
+    isLoading?: boolean;
 };
 
 export function DestinationSelect({
     destinations,
     value,
     onChange,
+    isLoading = false,
 }: DestinationSelectProps) {
     const [open, setOpen] = useState(false);
+
+    const selectedLabel = destinations.find((d) => d.value === value)?.label;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -41,13 +45,18 @@ export function DestinationSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    disabled={isLoading}
                     className="w-full h-10 bg-white justify-between font-normal"
                 >
-                    {value ? (
-                        destinations.find((d) => d.value === value)?.label
+                    {isLoading ? (
+                        <span className="text-muted-foreground">
+                            Loading...
+                        </span>
+                    ) : selectedLabel ? (
+                        selectedLabel
                     ) : (
                         <span className="text-muted-foreground">
-                            e.g. Phetchaburi, Pattaya, etc.
+                            เช่น กรุงเทพมหานคร, เมืองเชียงใหม่, เชียงใหม่
                         </span>
                     )}
                     <ChevronsUpDown className="opacity-50" />
@@ -55,20 +64,23 @@ export function DestinationSelect({
             </PopoverTrigger>
             <PopoverContent>
                 <Command>
-                    <CommandInput
-                        placeholder="Search destination..."
-                        className="h-9"
-                    />
+                    <CommandInput placeholder="ค้นหาอำเภอ..." className="h-9" />
                     <CommandList>
-                        <CommandEmpty>No destination found.</CommandEmpty>
+                        <CommandEmpty>ไม่พบอำเภอที่ค้นหา</CommandEmpty>
                         <CommandGroup>
                             {destinations.map((d) => (
                                 <CommandItem
                                     key={d.value}
-                                    value={d.value}
-                                    onSelect={(current) => {
+                                    value={d.label}
+                                    onSelect={(selectedLabel) => {
+                                        const found = destinations.find(
+                                            (dest) =>
+                                                dest.label === selectedLabel,
+                                        );
                                         onChange(
-                                            current === value ? '' : current,
+                                            found?.value === value
+                                                ? ''
+                                                : (found?.value ?? ''),
                                         );
                                         setOpen(false);
                                     }}
