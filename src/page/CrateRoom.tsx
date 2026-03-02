@@ -1,28 +1,61 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { MdMoreHoriz, MdIosShare, MdSave } from 'react-icons/md';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useSidebar } from '@/components/ui/sidebar';
 import RoomMembers from '@/components/room/RoomMembers';
 import RoomPlanning from '@/components/room/RoomPlanning';
-import { mockPlaces } from '@/lib/mockPlaces';
-import { mockSchedule } from '@/lib/mockSchedule';
+import { tripService } from '@/services/trip.service';
 import type { PlaceSuggestion } from '@/types/place';
 import type { ScheduleDay } from '@/types/schedule';
 
+function formatDateLabel(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+}
+
 export default function CreateRoom() {
+    const { tripId } = useParams<{ tripId: string }>();
     const { setOpen } = useSidebar();
 
-    const [places, setPlaces] = useState<PlaceSuggestion[]>(mockPlaces);
-    const [schedule, setSchedule] = useState<ScheduleDay[]>(mockSchedule);
-    const placeMapRef = useRef<Record<string, PlaceSuggestion>>(
-        Object.fromEntries(mockPlaces.map(p => [p.id, p]))
-    );
+    const [places, setPlaces] = useState<PlaceSuggestion[]>([]);
+    const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         setOpen(false);
         return () => setOpen(true);
     }, [setOpen]);
+
+    useEffect(() => {
+        if (!tripId) return;
+        tripService
+            .getSchedule(tripId)
+            .then(({ suggestions, days }) => {
+                setPlaces(suggestions);
+                const mapped: ScheduleDay[] = days.map((day) => ({
+                    id: `day-${day.day_number}`,
+                    day_number: day.day_number,
+                    date: day.date,
+                    dateLabel: formatDateLabel(day.date),
+                    items: day.schedules,
+                }));
+                setSchedule(mapped);
+            })
+            .catch((err) => {
+                console.error('[CreateRoom] Failed to load schedule:', err);
+                setError('ไม่สามารถโหลดข้อมูลตารางเดินทางได้');
+            })
+            .finally(() => setLoading(false));
+    }, [tripId]);
 
     useEffect(() => {
         console.log('[DnD] Data changed:', { places, schedule });
@@ -49,6 +82,22 @@ export default function CreateRoom() {
         console.log('[SavePlan] payload:', JSON.stringify(payload, null, 2));
         // TODO: call POST /trips and POST /trip-schedules with payload
     }, [buildPayload]);
+
+    if (loading) {
+        return (
+            <div className="h-[calc(100dvh-6rem)] w-full flex items-center justify-center">
+                <p className="text-foreground/50 text-sm">กำลังโหลดข้อมูล...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="h-[calc(100dvh-6rem)] w-full flex items-center justify-center">
+                <p className="text-red-500 text-sm">{error}</p>
+            </div>
+        );
+    }
 
     return (
         <div className="h-[calc(100dvh-6rem)] w-full flex flex-col overflow-hidden">
@@ -92,7 +141,6 @@ export default function CreateRoom() {
                         setPlaces={setPlaces}
                         schedule={schedule}
                         setSchedule={setSchedule}
-                        placeMapRef={placeMapRef}
                     />
                 </TabsContent>
                 <TabsContent

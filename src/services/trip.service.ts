@@ -1,6 +1,17 @@
 import axios from 'axios';
 import type { ApiResponseDTO } from '@/types/api';
+import type { PlaceSuggestion, PlaceType } from '@/types/place';
 import { STORAGE_KEYS } from '@/lib/constants';
+
+function normalizeType(raw: string): PlaceType {
+    const map: Record<string, PlaceType> = {
+        attraction: 'Attraction',
+        restaurant: 'Restaurant',
+        hotel: 'Hotel',
+        shopping: 'Attraction',
+    };
+    return map[raw.toLowerCase()] ?? 'Attraction';
+}
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -29,6 +40,53 @@ export interface CreateTripResponseDTO {
     trip_id: string;
 }
 
+export interface ScheduleItemResponseDTO {
+    id: string;
+    place_id: string;
+    place_name: string;
+    place_address?: string;
+    location?: { lat: number; lng: number };
+    day_number: number;
+    sequence_order: number;
+    start_time?: string;
+    end_time?: string;
+    type: PlaceType;
+}
+
+export interface ScheduleDayResponseDTO {
+    day_number: number;
+    date: string;
+    schedules: ScheduleItemResponseDTO[];
+}
+
+interface RawScheduleItem {
+    trip_schedule_id: number;
+    day_number: number;
+    sequence_order: number;
+    place_name: string;
+    place_id: string;
+    latitude?: number;
+    longitude?: number;
+    place_address?: string;
+    start_time?: string;
+    end_time?: string;
+    type: string;
+}
+
+interface RawScheduleDay {
+    day_number: number;
+    items: RawScheduleItem[];
+}
+
+interface GetScheduleResponseData {
+    trip_id: number;
+    destination_name: string;
+    start_date: string;
+    end_date: string;
+    suggestions: RawScheduleItem[];
+    days: RawScheduleDay[];
+}
+
 // ---------- service ----------
 
 export const tripService = {
@@ -44,5 +102,64 @@ export const tripService = {
             },
         });
         return data.data;
+    },
+
+    async getSchedule(tripId: string): Promise<{
+        suggestions: PlaceSuggestion[];
+        days: ScheduleDayResponseDTO[];
+    }> {
+        const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+        const { data } = await axios.get<
+            ApiResponseDTO<GetScheduleResponseData>
+        >(`${apiBaseUrl}/trip/${tripId}/schedule`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        const mapItem = (item: RawScheduleItem): ScheduleItemResponseDTO => ({
+            id: String(item.trip_schedule_id),
+            place_id: item.place_id,
+            place_name: item.place_name,
+            place_address: item.place_address,
+            location:
+                item.latitude != null && item.longitude != null
+                    ? { lat: item.latitude, lng: item.longitude }
+                    : undefined,
+            day_number: item.day_number,
+            sequence_order: item.sequence_order,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            type: normalizeType(item.type),
+        });
+
+        const suggestions: PlaceSuggestion[] = data.data.suggestions.map((item) => ({
+            id: String(item.trip_schedule_id),
+            place_id: item.place_id,
+            name: item.place_name,
+            address: item.place_address ?? '',
+            location:
+                item.latitude != null && item.longitude != null
+                    ? { lat: item.latitude, lng: item.longitude }
+                    : { lat: 0, lng: 0 },
+            type: normalizeType(item.type),
+        }));
+
+        const startDate = new Date(data.data.start_date);
+        const days: ScheduleDayResponseDTO[] = [...data.data.days]
+        .sort((a, b) => a.day_number - b.day_number)
+        .map((day) => {
+            const d = new Date(startDate);
+            d.setDate(startDate.getDate() + (day.day_number - 1));
+            return {
+                day_number: day.day_number,
+                date: d.toISOString().split('T')[0],
+                schedules: [...day.items]
+                    .sort((a, b) => a.sequence_order - b.sequence_order)
+                    .map(mapItem),
+            };
+        });
+
+        return { suggestions, days };
     },
 };
