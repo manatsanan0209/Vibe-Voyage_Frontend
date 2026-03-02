@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { RefObject } from 'react';
+import { MdMap, MdClose } from 'react-icons/md';
 import {
     DndContext,
     DragOverlay,
@@ -15,6 +16,17 @@ import SuggestionList from './Column/SuggestionList';
 import YourSchedule from './Column/YourSchedule';
 import type { PlaceSuggestion } from '@/types/place';
 import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
+import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
+import { assignTimes } from '@/lib/mockSchedule';
+
+function formatTime(iso?: string): string {
+    if (!iso) return '?';
+    return new Date(iso).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+}
 
 type RoomPlanningProps = {
     places: PlaceSuggestion[];
@@ -32,6 +44,7 @@ export default function RoomPlanning({
     placeMapRef,
 }: RoomPlanningProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [showMap, setShowMap] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -42,7 +55,8 @@ export default function RoomPlanning({
             return 'suggestion-list';
         }
         for (const day of schedule) {
-            if (id === day.id || day.items.some((i) => i.id === id)) return day.id;
+            if (id === day.id || day.items.some((i) => i.id === id))
+                return day.id;
         }
         return null;
     }
@@ -80,15 +94,18 @@ export default function RoomPlanning({
                 setSchedule((prev) =>
                     prev.map((day) => {
                         if (day.id !== activeContainer) return day;
-                        const oldIdx = day.items.findIndex((i) => i.id === activeId);
+                        const oldIdx = day.items.findIndex(
+                            (i) => i.id === activeId,
+                        );
                         const newIdx =
                             overId === day.id
                                 ? day.items.length - 1
                                 : day.items.findIndex((i) => i.id === overId);
                         if (oldIdx === -1 || newIdx === -1) return day;
+                        const reordered = arrayMove(day.items, oldIdx, newIdx);
                         return {
                             ...day,
-                            items: arrayMove(day.items, oldIdx, newIdx),
+                            items: assignTimes(day.date, reordered),
                         };
                     }),
                 );
@@ -97,11 +114,21 @@ export default function RoomPlanning({
             // Suggestion → Schedule day
             const place = places.find((p) => p.id === activeId);
             if (!place) return;
+            const targetDay = schedule.find((d) => d.id === overContainer);
+            if (!targetDay) return;
+
+            // ✅ Block if day is full
+            if (targetDay.items.length >= MAX_SLOTS_PER_DAY) return;
+
             const newItem: ScheduleItem = {
                 id: place.id,
-                timeRange: '',
-                title: place.name,
-                subtitle: place.address,
+                place_id: place.place_id,
+                place_name: place.name,
+                place_address: place.address,
+                location: place.location,
+                day_number: targetDay.day_number,
+                sequence_order: 0,
+                type: place.type,
             };
             setPlaces((prev) => prev.filter((p) => p.id !== activeId));
             setSchedule((prev) =>
@@ -114,7 +141,7 @@ export default function RoomPlanning({
                     } else {
                         newItems.push(newItem);
                     }
-                    return { ...day, items: newItems };
+                    return { ...day, items: assignTimes(day.date, newItems) };
                 }),
             );
         } else if (overContainer === 'suggestion-list') {
@@ -122,18 +149,25 @@ export default function RoomPlanning({
             const sourceDay = schedule.find((d) => d.id === activeContainer);
             const movedItem = sourceDay?.items.find((i) => i.id === activeId);
             if (!movedItem) return;
-            const restored: PlaceSuggestion = placeMapRef.current?.[movedItem.id] ?? {
+            const restored: PlaceSuggestion = placeMapRef.current?.[
+                movedItem.id
+            ] ?? {
                 id: movedItem.id,
-                name: movedItem.title,
-                address: movedItem.subtitle ?? '',
-                location: { lat: 13.7563, lng: 100.5018 },
+                place_id: movedItem.place_id,
+                name: movedItem.place_name,
+                address: movedItem.place_address ?? '',
+                location: movedItem.location ?? { lat: 13.7563, lng: 100.5018 },
+                type: movedItem.type,
             };
             setSchedule((prev) =>
                 prev.map((day) => {
                     if (day.id !== activeContainer) return day;
                     return {
                         ...day,
-                        items: day.items.filter((i) => i.id !== activeId),
+                        items: assignTimes(
+                            day.date,
+                            day.items.filter((i) => i.id !== activeId),
+                        ),
                     };
                 }),
             );
@@ -152,24 +186,42 @@ export default function RoomPlanning({
             const sourceDay = schedule.find((d) => d.id === activeContainer);
             const movedItem = sourceDay?.items.find((i) => i.id === activeId);
             if (!movedItem) return;
+
+            const targetDay = schedule.find((d) => d.id === overContainer);
+            if (!targetDay) return;
+
+            // ✅ Block if target day is full (count after removing from source)
+            const targetCountAfterMove =
+                activeContainer === overContainer
+                    ? targetDay.items.length // reorder, not adding
+                    : targetDay.items.length;
+            if (targetCountAfterMove >= MAX_SLOTS_PER_DAY) return;
+
             setSchedule((prev) => {
                 const withRemoval = prev.map((day) => {
                     if (day.id !== activeContainer) return day;
                     return {
                         ...day,
-                        items: day.items.filter((i) => i.id !== activeId),
+                        items: assignTimes(
+                            day.date,
+                            day.items.filter((i) => i.id !== activeId),
+                        ),
                     };
                 });
                 return withRemoval.map((day) => {
                     if (day.id !== overContainer) return day;
                     const overIdx = day.items.findIndex((i) => i.id === overId);
                     const newItems = [...day.items];
+                    const updatedItem: ScheduleItem = {
+                        ...movedItem,
+                        day_number: day.day_number,
+                    };
                     if (overIdx >= 0) {
-                        newItems.splice(overIdx, 0, movedItem);
+                        newItems.splice(overIdx, 0, updatedItem);
                     } else {
-                        newItems.push(movedItem);
+                        newItems.push(updatedItem);
                     }
-                    return { ...day, items: newItems };
+                    return { ...day, items: assignTimes(day.date, newItems) };
                 });
             });
         }
@@ -187,11 +239,65 @@ export default function RoomPlanning({
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
         >
-            <div className="grid grid-cols-3 gap-2 h-full min-h-0">
-                <SuggestionList places={places} />
-                <YourSchedule days={schedule} />
-                <Map places={places} />
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 h-full min-h-0">
+                <SuggestionList
+                    places={places}
+                    onDelete={(id) =>
+                        setPlaces((prev) => prev.filter((p) => p.id !== id))
+                    }
+                    onAdd={(place) => {
+                        if (placeMapRef.current)
+                            placeMapRef.current[place.id] = place;
+                        setPlaces((prev) => [...prev, place]);
+                    }}
+                />
+                <YourSchedule
+                    days={schedule}
+                    onDelete={(id) =>
+                        setSchedule((prev) =>
+                            prev.map((day) => ({
+                                ...day,
+                                items: assignTimes(
+                                    day.date,
+                                    day.items.filter((i) => i.id !== id),
+                                ),
+                            })),
+                        )
+                    }
+                />
+                {/* Map column — always visible on lg+, hidden on smaller screens */}
+                <div className="hidden lg:block w-full h-full min-h-0">
+                    <Map schedule={schedule} />
+                </div>
             </div>
+
+            {/* Map overlay for md and below */}
+            {showMap && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                    <div
+                        className="absolute inset-0 bg-black/50"
+                        onClick={() => setShowMap(false)}
+                    />
+                    <div className="absolute inset-4 rounded-2xl overflow-hidden shadow-2xl">
+                        <Map schedule={schedule} />
+                        <button
+                            onClick={() => setShowMap(false)}
+                            className="absolute top-3 right-3 z-10 bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100 transition-colors"
+                        >
+                            <MdClose className="w-5 h-5 text-gray-700" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Map button — only on smaller than lg */}
+            <button
+                onClick={() => setShowMap(true)}
+                className="fixed bottom-6 right-6 z-40 lg:hidden flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+                <MdMap className="w-5 h-5" />
+                <span className="text-sm font-semibold">Map</span>
+            </button>
 
             <DragOverlay>
                 {activePlaceItem && (
@@ -210,12 +316,14 @@ export default function RoomPlanning({
                     <div className="flex items-start gap-4 rounded-2xl bg-indigo-100/70 px-5 py-4 shadow-lg opacity-90 cursor-grabbing">
                         <div className="min-w-0">
                             <p className="text-base font-semibold tracking-tight">
-                                {activeScheduleItem.timeRange}
+                                {activeScheduleItem.start_time
+                                    ? `${formatTime(activeScheduleItem.start_time)} – ${formatTime(activeScheduleItem.end_time)}`
+                                    : 'No time set'}
                             </p>
                             <p className="mt-1 text-sm text-foreground/80">
-                                {activeScheduleItem.title}
-                                {activeScheduleItem.subtitle
-                                    ? `, ${activeScheduleItem.subtitle}`
+                                {activeScheduleItem.place_name}
+                                {activeScheduleItem.place_address
+                                    ? `, ${activeScheduleItem.place_address}`
                                     : ''}
                             </p>
                         </div>

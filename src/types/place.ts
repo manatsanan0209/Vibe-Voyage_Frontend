@@ -3,11 +3,15 @@ export type LatLngLiteral = {
     lng: number;
 };
 
+export type PlaceType = 'Attraction' | 'Restaurant' | 'Hotel';
+
 export type PlaceSuggestion = {
-    id: string;
-    name: string;
-    address: string;
+    id: string; // client DnD id
+    place_id: string; // Google Places API id → DB place_id
+    name: string; // display name → DB place_name
+    address: string; // display address
     location: LatLngLiteral;
+    type: PlaceType; // DB type ENUM
 };
 export interface Region {
     region_id: string;

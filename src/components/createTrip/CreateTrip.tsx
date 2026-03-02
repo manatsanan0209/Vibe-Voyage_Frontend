@@ -1,7 +1,9 @@
 import { Fragment, useState } from 'react';
 import Step1TripInfo from './Step1TripInfo';
+import type { Step1Data } from './Step1TripInfo';
 import Step2TravelVibe from './Step2TravelVibe';
 import Step3Priorities from './Step3Priorities';
+import { tripService } from '@/services/trip.service';
 
 // ---------- toggle helper ----------
 
@@ -35,13 +37,46 @@ const STEP_TITLES: Record<number, string> = {
 
 // ---------- component ----------
 
-export default function CreateTrip() {
+export interface InitialTripData {
+    destination?: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+interface CreateTripProps {
+    initialData?: InitialTripData;
+}
+
+function toDateStr(d: Date | undefined): string {
+    if (!d) return '';
+    return d.toISOString().slice(0, 10);
+}
+
+export default function CreateTrip({ initialData }: CreateTripProps) {
     const [step, setStep] = useState<1 | 2 | 3>(1);
+    const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
     const [vibeForm, setVibeForm] = useState<VibeFormData>(INITIAL_VIBE);
 
-    function handleSubmit() {
-        console.log('Create Trip — Vibe Form:', vibeForm);
-        // TODO: submit full trip + vibe data to API
+    async function handleSubmit() {
+        try {
+            const result = await tripService.createTrip({
+                room_name: step1Data?.tripName ?? '',
+                room_image: '',
+                destination_name: step1Data?.destinationName ?? '',
+                destination_id: step1Data?.destinationId ?? '',
+                start_date: toDateStr(step1Data?.startDate),
+                end_date: toDateStr(step1Data?.endDate),
+                preferred_destinations: step1Data?.preferredDestinations ?? [],
+                voyage_vibes: vibeForm.vibes,
+                voyage_priorities: vibeForm.priorities,
+                food_vibes: vibeForm.foodVibes,
+                additional_notes: vibeForm.extra,
+            });
+            console.log('Trip created:', result);
+            // TODO: navigate to room page with result.trip_id
+        } catch (err) {
+            console.error('Error creating trip:', err);
+        }
     }
 
     return (
@@ -59,13 +94,12 @@ export default function CreateTrip() {
                             {/* Circle */}
                             <div className="flex flex-col items-center gap-1 shrink-0">
                                 <span
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-300 ${
-                                        n < step
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-300 ${n < step
                                             ? 'bg-indigo-600 border-indigo-600 text-white'
                                             : n === step
-                                              ? 'bg-white border-indigo-600 text-indigo-600 shadow-md shadow-gray-400'
-                                              : 'bg-white border-gray-400 text-gray-400'
-                                    }`}
+                                                ? 'bg-white border-indigo-600 text-indigo-600 shadow-md shadow-gray-400'
+                                                : 'bg-white border-gray-400 text-gray-400'
+                                        }`}
                                 >
                                     {n < step ? (
                                         <svg
@@ -91,11 +125,10 @@ export default function CreateTrip() {
                             {/* Connecting line (not after last) */}
                             {i < 2 && (
                                 <div
-                                    className={`flex-1 h-0.5 mx-1 transition-all duration-300 ${
-                                        n < step
+                                    className={`flex-1 h-0.5 mx-1 transition-all duration-300 ${n < step
                                             ? 'bg-indigo-600'
                                             : 'bg-gray-400'
-                                    }`}
+                                        }`}
                                 />
                             )}
                         </Fragment>
@@ -105,7 +138,15 @@ export default function CreateTrip() {
 
             {/* Step content — constrained width, centered */}
             <div className="w-full max-w-7xl mx-auto">
-                {step === 1 && <Step1TripInfo onNext={() => setStep(2)} />}
+                {step === 1 && (
+                    <Step1TripInfo
+                        onNext={(data) => {
+                            setStep1Data(data);
+                            setStep(2);
+                        }}
+                        initialData={initialData}
+                    />
+                )}
 
                 {step === 2 && (
                     <Step2TravelVibe

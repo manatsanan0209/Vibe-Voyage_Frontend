@@ -1,28 +1,81 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapPin, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DestinationSelect } from '@/components/createTrip/DestinationSelect';
+import { DatePickerInput } from '@/components/createTrip/DatePickerInput';
+import type { ApiResponseDTO } from '@/types/api';
+import type { District } from '@/types/place';
 
-interface TripPlan {
-    destination: string;
-    startDate: string;
-    endDate: string;
-}
+type Destination = {
+    value: string;
+    label: string;
+};
 
 export default function PlanYourTrip() {
-    const [plan, setPlan] = useState<TripPlan>({
-        destination: '',
-        startDate: '',
-        endDate: '',
-    });
+    const navigate = useNavigate();
+    const [destination, setDestination] = useState('');
+    const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+    const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+    const [destinations, setDestinations] = useState<Destination[]>([]);
+    const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
     const [showError, setShowError] = useState(false);
 
+    useEffect(() => {
+        const fetchDestinations = async () => {
+            setIsLoadingDestinations(true);
+            try {
+                const res = await fetch(
+                    'http://localhost:8080/api/places/districts',
+                );
+                const json: ApiResponseDTO<District[]> = await res.json();
+
+                const seenProvinces = new Map<string, string>();
+                json.data.forEach((d) => {
+                    if (!seenProvinces.has(d.province.province_id)) {
+                        seenProvinces.set(
+                            d.province.province_id,
+                            d.province.province_name_th,
+                        );
+                    }
+                });
+                const provinceEntries: Destination[] = Array.from(
+                    seenProvinces.entries(),
+                )
+                    .sort((a, b) => a[1].localeCompare(b[1], 'th'))
+                    .map(([id, name]) => ({
+                        value: `province_${id}`,
+                        label: name,
+                    }));
+
+                const districtEntries: Destination[] = json.data.map((d) => ({
+                    value: d.district_id,
+                    label: `${d.district_name_th}, ${d.province.province_name_th}`,
+                }));
+
+                setDestinations([...provinceEntries, ...districtEntries]);
+            } catch (err) {
+                console.error('Failed to fetch districts:', err);
+            } finally {
+                setIsLoadingDestinations(false);
+            }
+        };
+        fetchDestinations();
+    }, []);
+
     const handlePlan = () => {
-        if (!plan.destination.trim()) {
+        if (!destination) {
             setShowError(true);
             return;
         }
         setShowError(false);
-        console.log('Trip Plan:', plan);
+        navigate('/create-trip', {
+            state: {
+                destination,
+                startDate: startDate?.toISOString(),
+                endDate: endDate?.toISOString(),
+            },
+        });
     };
 
     return (
@@ -39,7 +92,6 @@ export default function PlanYourTrip() {
             <div className="mt-2 flex flex-col gap-6 sm:gap-10 w-full max-w-full sm:max-w-115.25">
                 {/* Destination row */}
                 <div className="flex items-center gap-3 sm:gap-4">
-                    {/* Label column — fixed width so both rows align */}
                     <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
                         <MapPin className="size-5 text-indigo-600" />
                         <span className="text-sm font-semibold text-gray-900">
@@ -47,71 +99,45 @@ export default function PlanYourTrip() {
                         </span>
                     </div>
                     <div className="flex-1">
-                        <input
-                            type="text"
-                            value={plan.destination}
-                            onChange={(e) => {
-                                setPlan((p) => ({
-                                    ...p,
-                                    destination: e.target.value,
-                                }));
-                                if (e.target.value.trim()) setShowError(false);
+                        <DestinationSelect
+                            destinations={destinations}
+                            value={destination}
+                            onChange={(val) => {
+                                setDestination(val);
+                                if (val) setShowError(false);
                             }}
-                            placeholder="e.g. Phetchaburi , pattaya"
-                            className="w-full h-10.5 rounded-md border border-gray-400 bg-white px-4 text-xs text-gray-500 placeholder:text-gray-500 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                            isLoading={isLoadingDestinations}
                         />
                     </div>
                 </div>
 
                 {/* Date row */}
-                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                    {/* Label column — same width as destination row */}
-                    <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5 pt-3 sm:pt-0">
+                <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
                         <CalendarDays className="size-5 text-indigo-600" />
                         <span className="text-sm font-semibold text-gray-900">
                             Day
                         </span>
                     </div>
                     <div className="flex flex-col sm:flex-row flex-1 gap-3">
-                        {/* Start date */}
-                        <div className="relative flex-1">
-                            <label className="absolute -top-2.5 left-3 bg-violet-50 px-1 text-xs text-gray-500 leading-none">
-                                Start date
-                            </label>
-                            <input
-                                type="date"
-                                value={plan.startDate}
-                                onChange={(e) =>
-                                    setPlan((p) => ({
-                                        ...p,
-                                        startDate: e.target.value,
-                                    }))
-                                }
-                                className="w-full h-10.5 rounded-md border border-gray-400 bg-white px-3 text-sm font-semibold text-gray-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                            />
-                        </div>
-
+                        <DatePickerInput
+                            placeholder="Start date"
+                            value={startDate}
+                            onChange={setStartDate}
+                            disablePast
+                            className="flex-1 w-auto min-w-0"
+                        />
                         <span className="text-sm font-semibold text-gray-900 shrink-0 self-center">
                             To
                         </span>
-
-                        {/* End date */}
-                        <div className="relative flex-1">
-                            <label className="absolute -top-2.5 left-3 bg-violet-50 px-1 text-xs text-gray-500 leading-none">
-                                End date
-                            </label>
-                            <input
-                                type="date"
-                                value={plan.endDate}
-                                onChange={(e) =>
-                                    setPlan((p) => ({
-                                        ...p,
-                                        endDate: e.target.value,
-                                    }))
-                                }
-                                className="w-full h-10.5 rounded-md border border-gray-400 bg-white px-3 text-sm font-semibold text-gray-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                            />
-                        </div>
+                        <DatePickerInput
+                            placeholder="End date"
+                            value={endDate}
+                            onChange={setEndDate}
+                            minDate={startDate}
+                            rangeFrom={startDate}
+                            className="flex-1 w-auto min-w-0"
+                        />
                     </div>
                 </div>
             </div>

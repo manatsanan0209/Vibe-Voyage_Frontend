@@ -14,49 +14,49 @@ import mountainImg from '@/assets/createTrip/mountain.png';
 
 const VIBES = [
     {
-        id: 'beach',
+        id: 'beach_island_chill',
         label: 'Beach & island chill',
         labelTH: 'ทะเลและเกาะชิลๆ',
         image: beachImg,
     },
     {
-        id: 'local-culture',
+        id: 'local_culture_old_town',
         label: 'Local culture & old-town',
         labelTH: 'วัฒนธรรมท้องถิ่นและเมืองเก่า',
         image: localCultureImg,
     },
     {
-        id: 'adventure',
+        id: 'adventure_activity',
         label: 'Adventure & activity',
         labelTH: 'ผจญภัยและกิจกรรม',
         image: adventureImg,
     },
     {
-        id: 'photo-cafe',
+        id: 'photo_spots_cafe',
         label: 'Photo spots & café',
         labelTH: 'ถ่ายรูปและคาเฟ่',
         image: photoCafeImg,
     },
     {
-        id: 'nature',
+        id: 'nature_peaceful',
         label: 'Nature & peaceful',
         labelTH: 'ธรรมชาติ & เงียบสงบ',
         image: natureImg,
     },
     {
-        id: 'slow-life',
+        id: 'slow_life_relaxing',
         label: 'Slow-life & relaxing',
         labelTH: 'สโลว์ไลฟ์และพักผ่อน',
         image: slowLifeImg,
     },
     {
-        id: 'shopping',
+        id: 'shopping_market',
         label: 'Shopping & market',
         labelTH: 'ซื้อของและตลาด',
         image: shoppingImg,
     },
     {
-        id: 'mountain',
+        id: 'mountain_scenic_view',
         label: 'Mountain & scenic-view',
         labelTH: 'ภูเขาและวิวธรรมชาติ',
         image: mountainImg,
