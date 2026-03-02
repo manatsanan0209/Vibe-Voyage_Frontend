@@ -35,4 +35,6 @@ export interface District {
 export interface Attraction {
     id: string;
     name_th: string;
+    latitude?: number;
+    longitude?: number;
 }

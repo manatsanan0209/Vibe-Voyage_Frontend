@@ -12,6 +12,8 @@ export type DestinationOption = {
 export type AttractionOption = {
     value: string;
     label: string;
+    lat?: number;
+    lng?: number;
 };
 
 export const placeService = {
@@ -50,12 +52,19 @@ export const placeService = {
     async searchAttractions(query: string): Promise<AttractionOption[]> {
         const { data } = await axios.get<ApiResponseDTO<Attraction[]>>(
             `${apiBaseUrl}/attractions/search`,
-            { params: { name: query, fields: 'name_th,id' } },
+            {
+                params: {
+                    name: query,
+                    fields: 'name_th,id,latitude,longitude',
+                },
+            },
         );
 
         return data.data.map((a) => ({
             value: a.id,
             label: a.name_th,
+            lat: a.latitude,
+            lng: a.longitude,
         }));
     },
 };
