@@ -28,7 +28,10 @@ export function App() {
                             path="/create-trip"
                             element={<CreateTripPage />}
                         />
-                        <Route path="/createroom" element={<CreateRoom />} />
+                        <Route
+                            path="/createroom/:tripId"
+                            element={<CreateRoom />}
+                        />
                         <Route
                             path="/tripinformation"
                             element={<TripInformForm />}

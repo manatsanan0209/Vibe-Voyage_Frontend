@@ -17,9 +17,10 @@ const TYPE_STYLE: Record<PlaceType, string> = {
     Hotel: 'bg-green-100 text-green-700',
 };
 
-function formatTime(iso?: string): string {
-    if (!iso) return '?';
-    return new Date(iso).toLocaleTimeString('en-US', {
+function formatTime(time?: string): string {
+    if (!time) return '?';
+    if (/^\d{1,2}:\d{2}$/.test(time)) return time;
+    return new Date(time).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,

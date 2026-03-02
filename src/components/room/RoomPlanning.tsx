@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { RefObject } from 'react';
 import { MdMap, MdClose } from 'react-icons/md';
 import {
     DndContext,
@@ -17,15 +16,19 @@ import YourSchedule from './Column/YourSchedule';
 import type { PlaceSuggestion } from '@/types/place';
 import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
 import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
-import { assignTimes } from '@/lib/mockSchedule';
 
-function formatTime(iso?: string): string {
-    if (!iso) return '?';
-    return new Date(iso).toLocaleTimeString('en-US', {
+function formatTime(time?: string): string {
+    if (!time) return '?';
+    if (/^\d{1,2}:\d{2}$/.test(time)) return time;
+    return new Date(time).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
     });
+}
+
+function reorderItems(items: ScheduleDay['items']): ScheduleDay['items'] {
+    return items.map((item, idx) => ({ ...item, sequence_order: idx }));
 }
 
 type RoomPlanningProps = {
@@ -33,7 +36,6 @@ type RoomPlanningProps = {
     setPlaces: React.Dispatch<React.SetStateAction<PlaceSuggestion[]>>;
     schedule: ScheduleDay[];
     setSchedule: React.Dispatch<React.SetStateAction<ScheduleDay[]>>;
-    placeMapRef: RefObject<Record<string, PlaceSuggestion>>;
 };
 
 export default function RoomPlanning({
@@ -41,7 +43,6 @@ export default function RoomPlanning({
     setPlaces,
     schedule,
     setSchedule,
-    placeMapRef,
 }: RoomPlanningProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [showMap, setShowMap] = useState(false);
@@ -105,7 +106,7 @@ export default function RoomPlanning({
                         const reordered = arrayMove(day.items, oldIdx, newIdx);
                         return {
                             ...day,
-                            items: assignTimes(day.date, reordered),
+                            items: reorderItems(reordered),
                         };
                     }),
                 );
@@ -141,7 +142,7 @@ export default function RoomPlanning({
                     } else {
                         newItems.push(newItem);
                     }
-                    return { ...day, items: assignTimes(day.date, newItems) };
+                    return { ...day, items: reorderItems(newItems) };
                 }),
             );
         } else if (overContainer === 'suggestion-list') {
@@ -149,9 +150,7 @@ export default function RoomPlanning({
             const sourceDay = schedule.find((d) => d.id === activeContainer);
             const movedItem = sourceDay?.items.find((i) => i.id === activeId);
             if (!movedItem) return;
-            const restored: PlaceSuggestion = placeMapRef.current?.[
-                movedItem.id
-            ] ?? {
+            const restored: PlaceSuggestion = {
                 id: movedItem.id,
                 place_id: movedItem.place_id,
                 name: movedItem.place_name,
@@ -164,10 +163,7 @@ export default function RoomPlanning({
                     if (day.id !== activeContainer) return day;
                     return {
                         ...day,
-                        items: assignTimes(
-                            day.date,
-                            day.items.filter((i) => i.id !== activeId),
-                        ),
+                        items: reorderItems(day.items.filter((i) => i.id !== activeId)),
                     };
                 }),
             );
@@ -202,10 +198,7 @@ export default function RoomPlanning({
                     if (day.id !== activeContainer) return day;
                     return {
                         ...day,
-                        items: assignTimes(
-                            day.date,
-                            day.items.filter((i) => i.id !== activeId),
-                        ),
+                        items: reorderItems(day.items.filter((i) => i.id !== activeId)),
                     };
                 });
                 return withRemoval.map((day) => {
@@ -221,7 +214,7 @@ export default function RoomPlanning({
                     } else {
                         newItems.push(updatedItem);
                     }
-                    return { ...day, items: assignTimes(day.date, newItems) };
+                    return { ...day, items: reorderItems(newItems) };
                 });
             });
         }
@@ -245,11 +238,7 @@ export default function RoomPlanning({
                     onDelete={(id) =>
                         setPlaces((prev) => prev.filter((p) => p.id !== id))
                     }
-                    onAdd={(place) => {
-                        if (placeMapRef.current)
-                            placeMapRef.current[place.id] = place;
-                        setPlaces((prev) => [...prev, place]);
-                    }}
+                    onAdd={(place) => setPlaces((prev) => [...prev, place])}
                 />
                 <YourSchedule
                     days={schedule}
@@ -257,10 +246,7 @@ export default function RoomPlanning({
                         setSchedule((prev) =>
                             prev.map((day) => ({
                                 ...day,
-                                items: assignTimes(
-                                    day.date,
-                                    day.items.filter((i) => i.id !== id),
-                                ),
+                                items: reorderItems(day.items.filter((i) => i.id !== id)),
                             })),
                         )
                     }

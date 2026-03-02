@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Step1TripInfo from './Step1TripInfo';
 import type { Step1Data } from './Step1TripInfo';
 import Step2TravelVibe from './Step2TravelVibe';
@@ -53,6 +54,7 @@ function toDateStr(d: Date | undefined): string {
 }
 
 export default function CreateTrip({ initialData }: CreateTripProps) {
+    const navigate = useNavigate();
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
     const [vibeForm, setVibeForm] = useState<VibeFormData>(INITIAL_VIBE);
@@ -72,8 +74,7 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                 food_vibes: vibeForm.foodVibes,
                 additional_notes: vibeForm.extra,
             });
-            console.log('Trip created:', result);
-            // TODO: navigate to room page with result.trip_id
+            navigate(`/createroom/${result.trip_id}`);
         } catch (err) {
             console.error('Error creating trip:', err);
         }
