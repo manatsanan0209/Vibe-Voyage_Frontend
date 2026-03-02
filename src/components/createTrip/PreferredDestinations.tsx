@@ -18,6 +18,8 @@ import { placeService } from '@/services/place.service';
 type Place = {
     value: string;
     label: string;
+    lat?: number;
+    lng?: number;
 };
 
 type PreferredDestinationsProps = {

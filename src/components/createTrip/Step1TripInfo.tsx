@@ -17,6 +17,8 @@ type Destination = {
 type Place = {
     value: string;
     label: string;
+    lat?: number;
+    lng?: number;
 };
 
 export interface Step1Data {
@@ -25,7 +27,7 @@ export interface Step1Data {
     destinationName: string;
     startDate: Date | undefined;
     endDate: Date | undefined;
-    preferredDestinations: { destination_id: string; destination_name: string }[];
+    preferredDestinations: { destination_id: string; destination_name: string; latitude?: number; longitude?: number }[];
 }
 
 interface Step1TripInfoProps {
@@ -180,6 +182,8 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
                             preferredDestinations: preferredPlaces.map((p) => ({
                                 destination_id: p.value,
                                 destination_name: p.label,
+                                latitude: p.lat,
+                                longitude: p.lng,
                             })),
                         })
                     }

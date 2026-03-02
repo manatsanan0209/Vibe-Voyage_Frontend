@@ -9,6 +9,8 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 export interface PreferredDestinationDTO {
     destination_id: string;
     destination_name: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 export interface CreateTripRequestDTO {
