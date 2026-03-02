@@ -7,16 +7,35 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ImBin } from 'react-icons/im';
 import { Button } from '@/components/ui/button';
+import type { PlaceType } from '@/types/place';
 import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
+import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
+
+const TYPE_STYLE: Record<PlaceType, string> = {
+    Attraction: 'bg-blue-100 text-blue-700',
+    Restaurant: 'bg-orange-100 text-orange-700',
+    Hotel: 'bg-green-100 text-green-700',
+};
+
+function formatTime(iso?: string): string {
+    if (!iso) return '?';
+    return new Date(iso).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+}
 
 function SortableScheduleCard({
     item,
     dayIndex,
     index,
+    onDelete,
 }: {
     item: ScheduleItem;
     dayIndex: number;
     index: number;
+    onDelete: (id: string) => void;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
         useSortable({ id: item.id });
@@ -29,6 +48,11 @@ function SortableScheduleCard({
         animationFillMode: 'both' as const,
     };
 
+    const timeLabel =
+        item.start_time
+            ? `${formatTime(item.start_time)} – ${formatTime(item.end_time)}`
+            : 'No time set';
+
     return (
         <div
             ref={setNodeRef}
@@ -39,14 +63,18 @@ function SortableScheduleCard({
         >
             <div className="absolute -left-7 top-1/2 -translate-x-1/2 -translate-y-1/2 size-3 rounded-full bg-indigo-600 ring-4 ring-background" />
             <div className="flex items-start justify-between gap-4 rounded-2xl bg-indigo-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                <div className="min-w-0">
-                    <p className="text-base font-semibold tracking-tight">
-                        {item.timeRange}
-                    </p>
+                <div className="min-w-0 flex-1">
+                    <p className="text-base font-semibold tracking-tight">{timeLabel}</p>
                     <p className="mt-1 text-sm text-foreground/80">
-                        {item.title}
-                        {item.subtitle ? `, ${item.subtitle}` : ''}
+                        {item.place_name}
+                        {item.place_address ? `, ${item.place_address}` : ''}
                     </p>
+                    <span
+                        className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${TYPE_STYLE[item.type]
+                            }`}
+                    >
+                        {item.type}
+                    </span>
                 </div>
                 <Button
                     variant="outline"
@@ -55,6 +83,7 @@ function SortableScheduleCard({
                     type="button"
                     aria-label="Delete"
                     onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onDelete(item.id)}
                 >
                     <ImBin />
                 </Button>
@@ -63,8 +92,17 @@ function SortableScheduleCard({
     );
 }
 
-function DroppableDay({ day, dayIndex }: { day: ScheduleDay; dayIndex: number }) {
+function DroppableDay({
+    day,
+    dayIndex,
+    onDelete,
+}: {
+    day: ScheduleDay;
+    dayIndex: number;
+    onDelete: (id: string) => void;
+}) {
     const { setNodeRef } = useDroppable({ id: day.id });
+    const isFull = day.items.length >= MAX_SLOTS_PER_DAY;
 
     return (
         <section className="w-10/12 mx-auto">
@@ -75,13 +113,25 @@ function DroppableDay({ day, dayIndex }: { day: ScheduleDay; dayIndex: number })
                     <div className="absolute left-3 top-0 -translate-x-1/2 z-10 flex size-8 items-center justify-center rounded-full bg-background ring-4 ring-indigo-200">
                         <div className="size-3.5 rounded-full bg-indigo-600" />
                     </div>
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-indigo-500">
-                            Day {dayIndex + 1}
-                        </p>
-                        <h3 className="text-base font-extrabold tracking-tight">
-                            {day.dateLabel}
-                        </h3>
+                    <div className="flex items-center gap-2">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-indigo-500">
+                                Day {dayIndex + 1}
+                            </p>
+                            <h3 className="text-base font-extrabold tracking-tight">
+                                {day.dateLabel}
+                            </h3>
+                        </div>
+                        {isFull && (
+                            <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                                Full
+                            </span>
+                        )}
+                        {!isFull && (
+                            <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full bg-foreground/8 text-foreground/50">
+                                {day.items.length}/{MAX_SLOTS_PER_DAY}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -99,6 +149,7 @@ function DroppableDay({ day, dayIndex }: { day: ScheduleDay; dayIndex: number })
                                 item={item}
                                 dayIndex={dayIndex}
                                 index={index}
+                                onDelete={onDelete}
                             />
                         ))}
                     </div>
@@ -110,9 +161,10 @@ function DroppableDay({ day, dayIndex }: { day: ScheduleDay; dayIndex: number })
 
 type YourScheduleProps = {
     days: ScheduleDay[];
+    onDelete: (id: string) => void;
 };
 
-export default function YourSchedule({ days }: YourScheduleProps) {
+export default function YourSchedule({ days, onDelete }: YourScheduleProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="w-10/12 mx-auto mt-4 shrink-0">
@@ -122,7 +174,12 @@ export default function YourSchedule({ days }: YourScheduleProps) {
 
             <div className="pt-2 mt-2 flex flex-col gap-10 overflow-y-auto flex-1 min-h-0 pb-4">
                 {days.map((day, dayIndex) => (
-                    <DroppableDay key={day.id} day={day} dayIndex={dayIndex} />
+                    <DroppableDay
+                        key={day.id}
+                        day={day}
+                        dayIndex={dayIndex}
+                        onDelete={onDelete}
+                    />
                 ))}
             </div>
         </div>

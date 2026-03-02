@@ -17,7 +17,7 @@ export type AttractionOption = {
 export const placeService = {
     async fetchDistricts(): Promise<DestinationOption[]> {
         const { data } = await axios.get<ApiResponseDTO<District[]>>(
-            `${apiBaseUrl}/api/places/districts`,
+            `${apiBaseUrl}/places/districts`,
         );
 
         const seenProvinces = new Map<string, string>();
@@ -49,7 +49,7 @@ export const placeService = {
 
     async searchAttractions(query: string): Promise<AttractionOption[]> {
         const { data } = await axios.get<ApiResponseDTO<Attraction[]>>(
-            `${apiBaseUrl}/api/attractions/search`,
+            `${apiBaseUrl}/attractions/search`,
             { params: { name: query, fields: 'name_th,id' } },
         );
 

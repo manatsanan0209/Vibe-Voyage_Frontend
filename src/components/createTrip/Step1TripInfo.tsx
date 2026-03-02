@@ -19,16 +19,35 @@ type Place = {
     label: string;
 };
 
-interface Step1TripInfoProps {
-    onNext: () => void;
+export interface Step1Data {
+    tripName: string;
+    destinationId: string;
+    destinationName: string;
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+    preferredDestinations: { destination_id: string; destination_name: string }[];
 }
 
-export default function Step1TripInfo({ onNext }: Step1TripInfoProps) {
-    const [destination, setDestination] = useState('');
+interface Step1TripInfoProps {
+    onNext: (data: Step1Data) => void;
+    initialData?: {
+        destination?: string;
+        startDate?: string;
+        endDate?: string;
+    };
+}
+
+export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProps) {
+    const [tripName, setTripName] = useState('');
+    const [destination, setDestination] = useState(initialData?.destination ?? '');
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
-    const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-    const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+    const [startDate, setStartDate] = useState<Date | undefined>(
+        initialData?.startDate ? new Date(initialData.startDate) : undefined,
+    );
+    const [endDate, setEndDate] = useState<Date | undefined>(
+        initialData?.endDate ? new Date(initialData.endDate) : undefined,
+    );
     const [preferredPlaces, setPreferredPlaces] = useState<Place[]>([]);
 
     useEffect(() => {
@@ -94,6 +113,8 @@ export default function Step1TripInfo({ onNext }: Step1TripInfoProps) {
                 </p>
                 <Input
                     type="text"
+                    value={tripName}
+                    onChange={(e) => setTripName(e.target.value)}
                     className="h-10 bg-white w-full"
                     placeholder="Your Trip Name"
                 />
@@ -147,7 +168,21 @@ export default function Step1TripInfo({ onNext }: Step1TripInfoProps) {
             <div className="w-full max-w-xl mx-auto flex items-center justify-between mt-4">
                 <div />
                 <Button
-                    onClick={onNext}
+                    onClick={() =>
+                        onNext({
+                            tripName,
+                            destinationId: destination,
+                            destinationName:
+                                destinations.find((d) => d.value === destination)
+                                    ?.label ?? '',
+                            startDate,
+                            endDate,
+                            preferredDestinations: preferredPlaces.map((p) => ({
+                                destination_id: p.value,
+                                destination_name: p.label,
+                            })),
+                        })
+                    }
                     className="w-25 h-10 rounded-lg bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 shadow-none"
                 >
                     Next

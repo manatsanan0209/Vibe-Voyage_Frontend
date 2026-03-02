@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { FiRepeat } from 'react-icons/fi';
-import type { PlaceSuggestion } from '@/types/place';
+import type { ScheduleDay } from '@/types/schedule';
 import { Button } from '@/components/ui/button';
 
 type MapProps = {
-    places: PlaceSuggestion[];
+    schedule: ScheduleDay[];
 };
 
 function render(status: Status) {
@@ -24,11 +24,11 @@ function render(status: Status) {
 function GoogleMapCanvas({
     center,
     zoom,
-    places,
+    schedule,
 }: {
     center: google.maps.LatLngLiteral;
     zoom: number;
-    places: PlaceSuggestion[];
+    schedule: ScheduleDay[];
 }) {
     const mapRef = useRef<HTMLDivElement | null>(null);
     const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -39,11 +39,12 @@ function GoogleMapCanvas({
             new google.maps.Map(mapRef.current, {
                 center,
                 zoom,
+                // mapId is required for AdvancedMarkerElement
+                mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID',
                 clickableIcons: false,
                 mapTypeControl: false,
                 fullscreenControl: false,
                 streetViewControl: false,
-                // Allow scroll wheel / trackpad to zoom the map without modifier keys.
                 gestureHandling: 'greedy',
             }),
         );
@@ -57,32 +58,94 @@ function GoogleMapCanvas({
     useEffect(() => {
         if (!map) return;
 
-        const markers = places.map(
-            (place) =>
-                new google.maps.Marker({
-                    map,
-                    position: place.location,
-                    title: place.name,
-                }),
-        );
+        const markers: google.maps.marker.AdvancedMarkerElement[] = [];
+        const geocoder = new google.maps.Geocoder();
+
+        const resolvePosition = (
+            item: ScheduleDay['items'][number],
+        ): Promise<google.maps.LatLngLiteral> => {
+            if (item.location) return Promise.resolve(item.location);
+
+            return new Promise((resolve, reject) => {
+                const request: google.maps.GeocoderRequest = item.place_id
+                    ? { placeId: item.place_id }
+                    : { address: item.place_name };
+
+                geocoder.geocode(request, (results, status) => {
+                    if (
+                        status === google.maps.GeocoderStatus.OK &&
+                        results?.[0]?.geometry?.location
+                    ) {
+                        const loc = results[0].geometry.location;
+                        resolve({ lat: loc.lat(), lng: loc.lng() });
+                    } else {
+                        reject(
+                            new Error(
+                                `Geocode failed for "${item.place_name}": ${status}`,
+                            ),
+                        );
+                    }
+                });
+            });
+        };
+
+        let cancelled = false;
+
+        (async () => {
+            for (const day of schedule) {
+                for (const item of day.items) {
+                    if (cancelled) return;
+                    try {
+                        const position = await resolvePosition(item);
+
+                        if (cancelled) return;
+
+                        const pin = new google.maps.marker.PinElement({
+                            glyph: String(item.sequence_order + 1),
+                            glyphColor: '#ffffff',
+                            background: '#4f46e5',
+                            borderColor: '#4338ca',
+                        });
+
+                        markers.push(
+                            new google.maps.marker.AdvancedMarkerElement({
+                                map,
+                                position,
+                                title: item.place_name,
+                                content: pin.element,
+                            }),
+                        );
+                    } catch (e) {
+                        console.warn(e);
+                    }
+                }
+            }
+        })();
 
         return () => {
-            markers.forEach((marker) => marker.setMap(null));
+            cancelled = true;
+            markers.forEach((marker) => {
+                marker.map = null;
+            });
         };
-    }, [map, places]);
+    }, [map, schedule]);
 
     return <div ref={mapRef} className="absolute inset-0" />;
 }
 
-export default function Map({ places }: MapProps) {
+export default function Map({ schedule }: MapProps) {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as
         | string
         | undefined;
 
     const center = useMemo<google.maps.LatLngLiteral>(() => {
-        if (places.length > 0) return places[0].location;
+        for (const day of schedule) {
+            for (const item of day.items) {
+                if (item.location) return item.location;
+            }
+        }
         return { lat: 13.7563, lng: 100.5018 };
-    }, [places]);
+    }, [schedule]);
 
     if (!apiKey) {
         return (
@@ -105,11 +168,11 @@ export default function Map({ places }: MapProps) {
                 Re-gennerate
             </Button>
             <div className="relative w-11/12 mx-auto rounded-lg border overflow-hidden flex-1 min-h-0">
-                <Wrapper apiKey={apiKey} render={render}>
+                <Wrapper apiKey={apiKey} libraries={['marker']} render={render}>
                     <GoogleMapCanvas
                         center={center}
                         zoom={12}
-                        places={places}
+                        schedule={schedule}
                     />
                 </Wrapper>
             </div>

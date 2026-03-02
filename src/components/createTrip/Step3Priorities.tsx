@@ -5,38 +5,38 @@ import { cn } from '@/lib/utils';
 // ---------- data ----------
 
 const PRIORITIES = [
-    { id: 'atmosphere', label: 'Beautiful atmosphere', labelTH: 'บรรยากาศสวย' },
+    { id: 'beautiful_atmosphere', label: 'Beautiful atmosphere', labelTH: 'บรรยากาศสวย' },
     {
-        id: 'culture',
+        id: 'local_stories_culture',
         label: 'Local stories & culture',
         labelTH: 'เรื่องราวและวัฒนธรรมท้องถิ่น',
     },
-    { id: 'photo', label: 'Great photo vibes', labelTH: 'มุมถ่ายรูปสวย' },
+    { id: 'great_photo_vibes', label: 'Great photo vibes', labelTH: 'มุมถ่ายรูปสวย' },
     {
-        id: 'eco',
+        id: 'eco_friendly_sustainable',
         label: 'Eco-friendly & sustainable',
         labelTH: 'การท่องเที่ยวแบบใส่ใจสิ่งแวดล้อม',
     },
     {
-        id: 'food',
+        id: 'good_food_local_dishes',
         label: 'Good food & local dishes',
         labelTH: 'อาหารอร่อยและอาหารพื้นเมือง',
     },
-    { id: 'activities', label: 'Fun activities', labelTH: 'กิจกรรมสนุก ๆ' },
+    { id: 'fun_activities', label: 'Fun activities', labelTH: 'กิจกรรมสนุก ๆ' },
 ];
 
 const FOOD_VIBES = [
-    { id: 'thai', label: 'Thai Food', labelTH: 'อาหารไทย' },
-    { id: 'asian', label: 'Asian Food', labelTH: 'อาหารเอเชีย' },
+    { id: 'thai_food', label: 'Thai Food', labelTH: 'อาหารไทย' },
+    { id: 'asian_food', label: 'Asian Food', labelTH: 'อาหารเอเชีย' },
     {
-        id: 'thai-local',
+        id: 'thai_local_food',
         label: 'Thai Local Food',
         labelTH: 'อาหารท้องถิ่นของไทย',
     },
-    { id: 'halal', label: 'Halal / Muslim Food', labelTH: 'อาหารฮาลาล' },
-    { id: 'western', label: 'Western Food', labelTH: 'อาหารตะวันตก' },
+    { id: 'halal_muslim_food', label: 'Halal / Muslim Food', labelTH: 'อาหารฮาลาล' },
+    { id: 'western_food', label: 'Western Food', labelTH: 'อาหารตะวันตก' },
     {
-        id: 'cafe-dessert',
+        id: 'cafe_dessert',
         label: 'Café and Dessert',
         labelTH: 'คาเฟ่และของหวาน',
     },
