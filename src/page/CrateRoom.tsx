@@ -36,6 +36,7 @@ export default function CreateRoom() {
     }, [setOpen]);
 
     useEffect(() => {
+        console.log('tripId from URL:', tripId);
         if (!tripId) return;
         tripService
             .getSchedule(tripId)

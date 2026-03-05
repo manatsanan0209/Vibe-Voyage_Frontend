@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ImBin } from 'react-icons/im';
 import { MdAdd } from 'react-icons/md';
@@ -30,10 +34,16 @@ type SuggestionListProps = {
     onAdd: (place: PlaceSuggestion) => void;
 };
 
-function AddPlaceDialog({ onAdd }: { onAdd: (place: PlaceSuggestion) => void }) {
+function AddPlaceDialog({
+    onAdd,
+}: {
+    onAdd: (place: PlaceSuggestion) => void;
+}) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<{ value: string; label: string }[]>([]);
+    const [results, setResults] = useState<{ value: string; label: string }[]>(
+        [],
+    );
     const [isLoading, setIsLoading] = useState(false);
     const [selectedType, setSelectedType] = useState<PlaceType>('Attraction');
 
@@ -116,7 +126,9 @@ function AddPlaceDialog({ onAdd }: { onAdd: (place: PlaceSuggestion) => void }) 
                             type="text"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            onKeyDown={(e) =>
+                                e.key === 'Enter' && handleSearch()
+                            }
                             placeholder="Search place name..."
                             className="w-full h-10 pl-9 pr-3 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                         />
@@ -127,7 +139,11 @@ function AddPlaceDialog({ onAdd }: { onAdd: (place: PlaceSuggestion) => void }) 
                         disabled={isLoading || !query.trim()}
                         className="h-10 px-4 bg-indigo-600 text-white hover:bg-indigo-700"
                     >
-                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : 'Search'}
+                        {isLoading ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            'Search'
+                        )}
                     </Button>
                 </div>
 
@@ -135,7 +151,9 @@ function AddPlaceDialog({ onAdd }: { onAdd: (place: PlaceSuggestion) => void }) 
                 <div className="max-h-64 overflow-y-auto flex flex-col gap-2 mt-1">
                     {results.length === 0 && !isLoading && (
                         <p className="text-sm text-gray-400 text-center py-6">
-                            {query.trim() ? 'No results found' : 'Type a name and press Search'}
+                            {query.trim()
+                                ? 'No results found'
+                                : 'Type a name and press Search'}
                         </p>
                     )}
                     {results.map((item) => (
@@ -144,8 +162,12 @@ function AddPlaceDialog({ onAdd }: { onAdd: (place: PlaceSuggestion) => void }) 
                             className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5 hover:bg-gray-50"
                         >
                             <div className="flex flex-col min-w-0">
-                                <p className="text-sm font-medium truncate">{item.label}</p>
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full w-fit mt-0.5 ${TYPE_STYLE[selectedType]}`}>
+                                <p className="text-sm font-medium truncate">
+                                    {item.label}
+                                </p>
+                                <span
+                                    className={`text-xs px-1.5 py-0.5 rounded-full w-fit mt-0.5 ${TYPE_STYLE[selectedType]}`}
+                                >
                                     {selectedType}
                                 </span>
                             </div>
@@ -174,8 +196,14 @@ function SortablePlaceCard({
     index: number;
     onDelete: (id: string) => void;
 }) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-        useSortable({ id: place.id });
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: place.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -194,8 +222,12 @@ function SortablePlaceCard({
             className="flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 cursor-grab active:cursor-grabbing"
         >
             <div className="flex flex-col gap-1 my-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{place.name}</p>
-                <p className="text-xs text-foreground/60 truncate">{place.address}</p>
+                <p className="text-sm font-semibold text-foreground truncate">
+                    {place.name}
+                </p>
+                <p className="text-xs text-foreground/60 truncate">
+                    {place.address}
+                </p>
                 <span
                     className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${TYPE_STYLE[place.type]
                         }`}
@@ -218,14 +250,20 @@ function SortablePlaceCard({
     );
 }
 
-export default function SuggestionList({ places, onDelete, onAdd }: SuggestionListProps) {
+export default function SuggestionList({
+    places,
+    onDelete,
+    onAdd,
+}: SuggestionListProps) {
     const { setNodeRef } = useDroppable({ id: 'suggestion-list' });
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="w-10/12 mx-auto mt-4 shrink-0">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold tracking-tight">Suggestion List</h2>
+                    <h2 className="text-base font-bold tracking-tight">
+                        Suggestion List
+                    </h2>
                     <AddPlaceDialog onAdd={onAdd} />
                 </div>
                 <div className="mt-2 h-px w-40 bg-foreground/20" />

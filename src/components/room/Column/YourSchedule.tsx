@@ -38,8 +38,14 @@ function SortableScheduleCard({
     index: number;
     onDelete: (id: string) => void;
 }) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-        useSortable({ id: item.id });
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: item.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -49,10 +55,9 @@ function SortableScheduleCard({
         animationFillMode: 'both' as const,
     };
 
-    const timeLabel =
-        item.start_time
-            ? `${formatTime(item.start_time)} – ${formatTime(item.end_time)}`
-            : 'No time set';
+    const timeLabel = item.start_time
+        ? `${formatTime(item.start_time)} – ${formatTime(item.end_time)}`
+        : 'No time set';
 
     return (
         <div
@@ -65,14 +70,17 @@ function SortableScheduleCard({
             <div className="absolute -left-7 top-1/2 -translate-x-1/2 -translate-y-1/2 size-3 rounded-full bg-indigo-600 ring-4 ring-background" />
             <div className="flex items-start justify-between gap-4 rounded-2xl bg-indigo-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
                 <div className="min-w-0 flex-1">
-                    <p className="text-base font-semibold tracking-tight">{timeLabel}</p>
+                    <p className="text-base font-semibold tracking-tight">
+                        {timeLabel}
+                    </p>
                     <p className="mt-1 text-sm text-foreground/80">
                         {item.place_name}
                         {item.place_address ? `, ${item.place_address}` : ''}
                     </p>
                     <span
-                        className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${TYPE_STYLE[item.type]
-                            }`}
+                        className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${
+                            TYPE_STYLE[item.type]
+                        }`}
                     >
                         {item.type}
                     </span>
@@ -169,7 +177,9 @@ export default function YourSchedule({ days, onDelete }: YourScheduleProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="w-10/12 mx-auto mt-4 shrink-0">
-                <h2 className="text-base font-bold tracking-tight">Your Schedule</h2>
+                <h2 className="text-base font-bold tracking-tight">
+                    Your Schedule
+                </h2>
                 <div className="mt-2 h-px w-40 bg-foreground/20" />
             </div>
 

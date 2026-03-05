@@ -119,48 +119,69 @@ export const tripService = {
             },
         });
 
-        const mapItem = (item: RawScheduleItem): ScheduleItemResponseDTO => ({
-            id: String(item.trip_schedule_id),
-            place_id: item.place_id,
-            place_name: item.place_name,
-            place_address: item.place_address,
-            location:
-                item.latitude != null && item.longitude != null
-                    ? { lat: item.latitude, lng: item.longitude }
-                    : undefined,
-            day_number: item.day_number,
-            sequence_order: item.sequence_order,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            type: normalizeType(item.type),
-        });
+        console.log('[getSchedule] raw response data:', data.data);
 
-        const suggestions: PlaceSuggestion[] = data.data.suggestions.map((item) => ({
-            id: String(item.trip_schedule_id),
-            place_id: item.place_id,
-            name: item.place_name,
-            address: item.place_address ?? '',
-            location:
-                item.latitude != null && item.longitude != null
-                    ? { lat: item.latitude, lng: item.longitude }
-                    : { lat: 0, lng: 0 },
-            type: normalizeType(item.type),
-        }));
+        const SLOT_TIMES = [
+            { start: '08:30', end: '10:30' },
+            { start: '10:30', end: '12:30' },
+            { start: '12:30', end: '14:30' },
+            { start: '14:30', end: '16:30' },
+        ];
+
+        const mapItem = (item: RawScheduleItem): ScheduleItemResponseDTO => {
+            const slot =
+                SLOT_TIMES[item.sequence_order - 1] ??
+                SLOT_TIMES[SLOT_TIMES.length - 1];
+            return {
+                id: String(item.trip_schedule_id),
+                place_id: item.place_id,
+                place_name: item.place_name,
+                place_address: item.place_address,
+                location:
+                    item.latitude != null && item.longitude != null
+                        ? { lat: item.latitude, lng: item.longitude }
+                        : undefined,
+                day_number: item.day_number,
+                sequence_order: item.sequence_order,
+                start_time: slot.start,
+                end_time: slot.end,
+                type: normalizeType(item.type),
+            };
+        };
+
+        const suggestions: PlaceSuggestion[] = data.data.suggestions.map(
+            (item) => ({
+                id: String(item.trip_schedule_id),
+                place_id: item.place_id,
+                name: item.place_name,
+                address: item.place_address ?? '',
+                location:
+                    item.latitude != null && item.longitude != null
+                        ? { lat: item.latitude, lng: item.longitude }
+                        : { lat: 0, lng: 0 },
+                type: normalizeType(item.type),
+            }),
+        );
 
         const startDate = new Date(data.data.start_date);
+        if (isNaN(startDate.getTime())) {
+            throw new Error(
+                `Invalid start_date from API: ${data.data.start_date}`,
+            );
+        }
         const days: ScheduleDayResponseDTO[] = [...data.data.days]
-        .sort((a, b) => a.day_number - b.day_number)
-        .map((day) => {
-            const d = new Date(startDate);
-            d.setDate(startDate.getDate() + (day.day_number - 1));
-            return {
-                day_number: day.day_number,
-                date: d.toISOString().split('T')[0],
-                schedules: [...day.items]
-                    .sort((a, b) => a.sequence_order - b.sequence_order)
-                    .map(mapItem),
-            };
-        });
+            .sort((a, b) => a.day_number - b.day_number)
+            .map((day) => {
+                const d = new Date(startDate);
+                d.setDate(startDate.getDate() + (day.day_number - 1));
+                return {
+                    day_number: day.day_number,
+                    date: d.toISOString().split('T')[0],
+                    schedules: [...day.items]
+                        .sort((a, b) => a.sequence_order - b.sequence_order)
+                        .map(mapItem),
+                };
+            });
 
         return { suggestions, days };
     },
