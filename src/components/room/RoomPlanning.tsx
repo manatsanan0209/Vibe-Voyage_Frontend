@@ -27,8 +27,23 @@ function formatTime(time?: string): string {
     });
 }
 
+const SLOT_TIMES = [
+    { start: '08:30', end: '10:30' },
+    { start: '10:30', end: '12:30' },
+    { start: '12:30', end: '14:30' },
+    { start: '14:30', end: '16:30' },
+];
+
 function reorderItems(items: ScheduleDay['items']): ScheduleDay['items'] {
-    return items.map((item, idx) => ({ ...item, sequence_order: idx }));
+    return items.map((item, idx) => {
+        const slot = SLOT_TIMES[idx] ?? SLOT_TIMES[SLOT_TIMES.length - 1];
+        return {
+            ...item,
+            sequence_order: idx,
+            start_time: slot.start,
+            end_time: slot.end,
+        };
+    });
 }
 
 type RoomPlanningProps = {

@@ -58,8 +58,10 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
     const [vibeForm, setVibeForm] = useState<VibeFormData>(INITIAL_VIBE);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     async function handleSubmit() {
+        setIsSubmitting(true);
         try {
             const result = await tripService.createTrip({
                 room_name: step1Data?.tripName ?? '',
@@ -77,11 +79,20 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
             navigate(`/createroom/${result.trip_id}`);
         } catch (err) {
             console.error('Error creating trip:', err);
+            setIsSubmitting(false);
         }
     }
 
     return (
         <div className="w-full flex flex-col gap-8">
+            {isSubmitting && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/50">
+                    <div className="w-12 h-12 rounded-full border-4 border-indigo-300 border-t-indigo-600 animate-spin" />
+                    <p className="mt-4 text-white font-medium">
+                        กำลังสร้างทริปของคุณ...
+                    </p>
+                </div>
+            )}
             {/* Step indicator */}
             <div className="flex flex-col items-center gap-3">
                 <p className="text-2xl font-semibold text-black">
