@@ -144,11 +144,12 @@ export default function CreateRoom() {
                         setSchedule={setSchedule}
                     />
                 </TabsContent>
+
                 <TabsContent
                     value="member"
                     className="flex-1 min-h-0 overflow-y-auto"
                 >
-                    <RoomMembers />
+                    <RoomMembers tripId={tripId ?? ''} />
                 </TabsContent>
             </Tabs>
         </div>
