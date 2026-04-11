@@ -162,7 +162,7 @@ export default function Map({ schedule }: MapProps) {
     }
 
     return (
-        <div className="flex flex-col h-full min-h-0 pb-3">
+        <div className="flex flex-col h-full min-h-0 pb-3 gap-3">
             <Button className="bg-sky-800 w-1/2 ml-auto mr-4 my-1">
                 <FiRepeat />
                 Re-gennerate
