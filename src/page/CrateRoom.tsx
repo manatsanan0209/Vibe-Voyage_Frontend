@@ -101,7 +101,7 @@ export default function CreateRoom() {
     }
 
     return (
-        <div className="h-[calc(100dvh-6rem)] w-full flex flex-col overflow-hidden">
+        <div className="h-[calc(100dvh-6rem)] w-full flex flex-col gap-6 overflow-hidden">
             <div className="flex flex-row items-end justify-end gap-6 pr-6 shrink-0">
                 <Button className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent">
                     <MdMoreHoriz />
@@ -123,7 +123,7 @@ export default function CreateRoom() {
             <Tabs defaultValue="planning" className="flex-1 min-h-0">
                 <TabsList
                     variant="line"
-                    className="w-full justify-start rounded-lg bg-transparent border-b border-foreground/10 shrink-0"
+                    className="w-full justify-start rounded-lg bg-transparent border-b border-foreground/10 shrink-0 mb-4"
                 >
                     <TabsTrigger value="planning" className="text-base">
                         Planning Trip
