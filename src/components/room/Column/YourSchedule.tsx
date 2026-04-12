@@ -32,11 +32,13 @@ function SortableScheduleCard({
     dayIndex,
     index,
     onDelete,
+    readOnly,
 }: {
     item: ScheduleItem;
     dayIndex: number;
     index: number;
     onDelete: (id: string) => void;
+    readOnly: boolean;
 }) {
     const {
         attributes,
@@ -63,9 +65,12 @@ function SortableScheduleCard({
         <div
             ref={setNodeRef}
             style={style}
-            {...attributes}
-            {...listeners}
-            className="relative motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 cursor-grab active:cursor-grabbing"
+            {...(!readOnly ? attributes : {})}
+            {...(!readOnly ? listeners : {})}
+            className={`relative motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 ${readOnly
+                    ? 'cursor-default'
+                    : 'cursor-grab active:cursor-grabbing'
+                }`}
         >
             <div className="absolute -left-7 top-1/2 -translate-x-1/2 -translate-y-1/2 size-3 rounded-full bg-indigo-600 ring-4 ring-background" />
             <div className="flex items-start justify-between gap-4 rounded-2xl bg-indigo-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
@@ -78,9 +83,8 @@ function SortableScheduleCard({
                         {item.place_address ? `, ${item.place_address}` : ''}
                     </p>
                     <span
-                        className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${
-                            TYPE_STYLE[item.type]
-                        }`}
+                        className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${TYPE_STYLE[item.type]
+                            }`}
                     >
                         {item.type}
                     </span>
@@ -93,6 +97,7 @@ function SortableScheduleCard({
                     aria-label="Delete"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => onDelete(item.id)}
+                    disabled={readOnly}
                 >
                     <ImBin />
                 </Button>
@@ -105,10 +110,12 @@ function DroppableDay({
     day,
     dayIndex,
     onDelete,
+    readOnly,
 }: {
     day: ScheduleDay;
     dayIndex: number;
     onDelete: (id: string) => void;
+    readOnly: boolean;
 }) {
     const { setNodeRef } = useDroppable({ id: day.id });
     const isFull = day.items.length >= MAX_SLOTS_PER_DAY;
@@ -159,6 +166,7 @@ function DroppableDay({
                                 dayIndex={dayIndex}
                                 index={index}
                                 onDelete={onDelete}
+                                readOnly={readOnly}
                             />
                         ))}
                     </div>
@@ -171,9 +179,14 @@ function DroppableDay({
 type YourScheduleProps = {
     days: ScheduleDay[];
     onDelete: (id: string) => void;
+    readOnly?: boolean;
 };
 
-export default function YourSchedule({ days, onDelete }: YourScheduleProps) {
+export default function YourSchedule({
+    days,
+    onDelete,
+    readOnly = false,
+}: YourScheduleProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="w-10/12 mx-auto mt-4 shrink-0">
@@ -190,6 +203,7 @@ export default function YourSchedule({ days, onDelete }: YourScheduleProps) {
                         day={day}
                         dayIndex={dayIndex}
                         onDelete={onDelete}
+                        readOnly={readOnly}
                     />
                 ))}
             </div>

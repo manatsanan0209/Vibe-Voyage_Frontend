@@ -54,7 +54,7 @@ export default function RoomMembers({ tripId }: RoomMembersProps) {
     }, [fetchMembers]);
 
     const isOwner = members.some(
-        (m) => m.user_id === user?.id && m.role_name === 'owner',
+        (m) => m.user_id === user?.id && (m.role === 1 || m.role_name === 'owner'),
     );
 
     const handleRemove = async () => {
@@ -127,10 +127,15 @@ export default function RoomMembers({ tripId }: RoomMembersProps) {
                             </span>
 
                             {/* Role badge */}
-                            {member.role_name === 'owner' ? (
+                            {member.role === 1 || member.role_name === 'owner' ? (
                                 <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border-transparent">
                                     <Crown className="size-3" />
                                     Owner
+                                </Badge>
+                            ) : member.role === 3 ? (
+                                <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-transparent">
+                                    <User className="size-3" />
+                                    Spectator
                                 </Badge>
                             ) : (
                                 <Badge className="bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400 border-transparent">
@@ -140,12 +145,12 @@ export default function RoomMembers({ tripId }: RoomMembersProps) {
                             )}
 
                             {/* Remove button — owner only, can't remove themselves */}
-                            {isOwner && member.role_name !== 'owner' && (
+                            {isOwner && member.role !== 1 && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     className="size-8 text-foreground/30 hover:text-red-500 hover:bg-red-50 shrink-0"
-                                    disabled={removing === member.user_id}
+                                    disabled={removing === member.room_member_id}
                                     onClick={() => setConfirmMember(member)}
                                 >
                                     <Trash2 className="size-4" />

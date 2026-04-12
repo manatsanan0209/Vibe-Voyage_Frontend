@@ -32,12 +32,15 @@ type SuggestionListProps = {
     places: PlaceSuggestion[];
     onDelete: (id: string) => void;
     onAdd: (place: PlaceSuggestion) => void;
+    readOnly?: boolean;
 };
 
 function AddPlaceDialog({
     onAdd,
+    readOnly,
 }: {
     onAdd: (place: PlaceSuggestion) => void;
+    readOnly: boolean;
 }) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -92,6 +95,7 @@ function AddPlaceDialog({
                     className="h-7 w-7 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 shrink-0"
                     type="button"
                     aria-label="Add place"
+                    disabled={readOnly}
                 >
                     <MdAdd className="size-4" />
                 </Button>
@@ -136,7 +140,7 @@ function AddPlaceDialog({
                     <Button
                         type="button"
                         onClick={handleSearch}
-                        disabled={isLoading || !query.trim()}
+                        disabled={readOnly || isLoading || !query.trim()}
                         className="h-10 px-4 bg-indigo-600 text-white hover:bg-indigo-700"
                     >
                         {isLoading ? (
@@ -176,6 +180,7 @@ function AddPlaceDialog({
                                 size="sm"
                                 onClick={() => handleAdd(item)}
                                 className="shrink-0 h-8 px-3 bg-indigo-600 text-white hover:bg-indigo-700"
+                                disabled={readOnly}
                             >
                                 Add
                             </Button>
@@ -191,10 +196,12 @@ function SortablePlaceCard({
     place,
     index,
     onDelete,
+    readOnly,
 }: {
     place: PlaceSuggestion;
     index: number;
     onDelete: (id: string) => void;
+    readOnly: boolean;
 }) {
     const {
         attributes,
@@ -217,9 +224,12 @@ function SortablePlaceCard({
         <div
             ref={setNodeRef}
             style={style}
-            {...attributes}
-            {...listeners}
-            className="flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 cursor-grab active:cursor-grabbing"
+            {...(!readOnly ? attributes : {})}
+            {...(!readOnly ? listeners : {})}
+            className={`flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-sm transition-all duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 ${readOnly
+                    ? 'cursor-default'
+                    : 'hover:-translate-y-0.5 hover:shadow-md cursor-grab active:cursor-grabbing'
+                }`}
         >
             <div className="flex flex-col gap-1 my-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">
@@ -243,6 +253,7 @@ function SortablePlaceCard({
                 aria-label="Delete"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => onDelete(place.id)}
+                disabled={readOnly}
             >
                 <ImBin />
             </Button>
@@ -254,6 +265,7 @@ export default function SuggestionList({
     places,
     onDelete,
     onAdd,
+    readOnly = false,
 }: SuggestionListProps) {
     const { setNodeRef } = useDroppable({ id: 'suggestion-list' });
 
@@ -264,7 +276,7 @@ export default function SuggestionList({
                     <h2 className="text-base font-bold tracking-tight">
                         Suggestion List
                     </h2>
-                    <AddPlaceDialog onAdd={onAdd} />
+                    <AddPlaceDialog onAdd={onAdd} readOnly={readOnly} />
                 </div>
                 <div className="mt-2 h-px w-40 bg-foreground/20" />
             </div>
@@ -282,6 +294,7 @@ export default function SuggestionList({
                             place={place}
                             index={index}
                             onDelete={onDelete}
+                            readOnly={readOnly}
                         />
                     ))}
                 </div>

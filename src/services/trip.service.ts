@@ -15,6 +15,11 @@ function normalizeType(raw: string): PlaceType {
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
+function authHeader() {
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    return { Authorization: `Bearer ${token}` };
+}
+
 // ---------- request / response DTOs ----------
 
 export interface PreferredDestinationDTO {
@@ -40,6 +45,24 @@ export interface CreateTripRequestDTO {
 
 export interface CreateTripResponseDTO {
     trip_id: string;
+}
+
+export interface JoinTripByInviteCodeRequestDTO {
+    invite_code: string;
+}
+
+export interface JoinTripByInviteCodeDataDTO {
+    trip_id: number;
+    room_id: number;
+    destination_name: string;
+    start_date: string;
+    end_date: string;
+    room_member_id: number;
+    user_id: number;
+    username: string;
+    role: number;
+    role_name: 'owner' | 'member' | 'unknown';
+    joined_at: string;
 }
 
 export interface ScheduleItemResponseDTO {
@@ -95,13 +118,24 @@ export const tripService = {
     async createTrip(
         dto: CreateTripRequestDTO,
     ): Promise<CreateTripResponseDTO> {
-        const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
         const { data } = await axios.post<
             ApiResponseDTO<CreateTripResponseDTO>
         >(`${apiBaseUrl}/trip`, dto, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: authHeader(),
+        });
+        return data.data;
+    },
+
+    async joinTripByInviteCode(
+        inviteCode: string,
+    ): Promise<JoinTripByInviteCodeDataDTO> {
+        const payload: JoinTripByInviteCodeRequestDTO = {
+            invite_code: inviteCode,
+        };
+        const { data } = await axios.post<
+            ApiResponseDTO<JoinTripByInviteCodeDataDTO>
+        >(`${apiBaseUrl}/trip/join-by-invite-code`, payload, {
+            headers: authHeader(),
         });
         return data.data;
     },
@@ -110,13 +144,10 @@ export const tripService = {
         suggestions: PlaceSuggestion[];
         days: ScheduleDayResponseDTO[];
     }> {
-        const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
         const { data } = await axios.get<
             ApiResponseDTO<GetScheduleResponseData>
         >(`${apiBaseUrl}/trip/${tripId}/schedule`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: authHeader(),
         });
 
         console.log('[getSchedule] raw response data:', data.data);

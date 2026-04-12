@@ -51,6 +51,7 @@ type RoomPlanningProps = {
     setPlaces: React.Dispatch<React.SetStateAction<PlaceSuggestion[]>>;
     schedule: ScheduleDay[];
     setSchedule: React.Dispatch<React.SetStateAction<ScheduleDay[]>>;
+    readOnly?: boolean;
 };
 
 export default function RoomPlanning({
@@ -58,6 +59,7 @@ export default function RoomPlanning({
     setPlaces,
     schedule,
     setSchedule,
+    readOnly = false,
 }: RoomPlanningProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [showMap, setShowMap] = useState(false);
@@ -78,10 +80,15 @@ export default function RoomPlanning({
     }
 
     function onDragStart(event: DragStartEvent) {
+        if (readOnly) return;
         setActiveId(String(event.active.id));
     }
 
     function onDragEnd(event: DragEndEvent) {
+        if (readOnly) {
+            setActiveId(null);
+            return;
+        }
         const { active, over } = event;
         setActiveId(null);
         if (!over) return;
@@ -178,7 +185,9 @@ export default function RoomPlanning({
                     if (day.id !== activeContainer) return day;
                     return {
                         ...day,
-                        items: reorderItems(day.items.filter((i) => i.id !== activeId)),
+                        items: reorderItems(
+                            day.items.filter((i) => i.id !== activeId),
+                        ),
                     };
                 }),
             );
@@ -213,7 +222,9 @@ export default function RoomPlanning({
                     if (day.id !== activeContainer) return day;
                     return {
                         ...day,
-                        items: reorderItems(day.items.filter((i) => i.id !== activeId)),
+                        items: reorderItems(
+                            day.items.filter((i) => i.id !== activeId),
+                        ),
                     };
                 });
                 return withRemoval.map((day) => {
@@ -250,21 +261,30 @@ export default function RoomPlanning({
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 h-full min-h-0">
                 <SuggestionList
                     places={places}
-                    onDelete={(id) =>
-                        setPlaces((prev) => prev.filter((p) => p.id !== id))
-                    }
-                    onAdd={(place) => setPlaces((prev) => [...prev, place])}
+                    onDelete={(id) => {
+                        if (readOnly) return;
+                        setPlaces((prev) => prev.filter((p) => p.id !== id));
+                    }}
+                    onAdd={(place) => {
+                        if (readOnly) return;
+                        setPlaces((prev) => [...prev, place]);
+                    }}
+                    readOnly={readOnly}
                 />
                 <YourSchedule
                     days={schedule}
-                    onDelete={(id) =>
+                    onDelete={(id) => {
+                        if (readOnly) return;
                         setSchedule((prev) =>
                             prev.map((day) => ({
                                 ...day,
-                                items: reorderItems(day.items.filter((i) => i.id !== id)),
+                                items: reorderItems(
+                                    day.items.filter((i) => i.id !== id),
+                                ),
                             })),
-                        )
-                    }
+                        );
+                    }}
+                    readOnly={readOnly}
                 />
                 {/* Map column — always visible on lg+, hidden on smaller screens */}
                 <div className="hidden lg:block w-full h-full min-h-0">

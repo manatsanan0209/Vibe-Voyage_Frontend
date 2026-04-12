@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NewTripCard from '@/components/myTrips/NewTripCard';
 import TripCard, { type Collaborator } from '@/components/myTrips/TripCard';
 import { useAuth } from '@/context/AuthContext';
@@ -56,6 +57,7 @@ function getApiErrorMessage(error: unknown): string {
 }
 
 export default function MyTrips() {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [rooms, setRooms] = useState<UserRoomSummary[]>([]);
     const [loading, setLoading] = useState(true);
@@ -131,9 +133,23 @@ export default function MyTrips() {
                                     room.room_id,
                                     room.members_count,
                                 )}
+                                clickable={Boolean(room.trip_id)}
+                                onClick={() => {
+                                    if (!room.trip_id) return;
+                                    navigate(`/your-trips/${room.trip_id}`);
+                                }}
                             />
                         ))}
                 </div>
+
+                {!loading &&
+                    !error &&
+                    rooms.some((room) => !room.trip_id) && (
+                        <p className="mt-4 text-xs text-amber-700">
+                            บางทริปยังไม่สามารถเข้าได้ชั่วคราว เนื่องจาก backend
+                            ยังไม่ส่ง trip_id ครบทุกรายการ
+                        </p>
+                    )}
             </div>
         </main>
     );

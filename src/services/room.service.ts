@@ -10,12 +10,13 @@ export interface RoomMember {
     user_id: number;
     username: string;
     role: number;
-    role_name: 'owner' | 'member';
+    role_name: 'owner' | 'member' | 'spectator' | 'unknown';
     created_at: string;
 }
 
 export interface UserRoomSummary {
     room_id: number;
+    trip_id?: string;
     room_name: string;
     room_image: string;
     owner_id: number;
@@ -24,6 +25,25 @@ export interface UserRoomSummary {
     role_name: 'owner' | 'member' | 'unknown';
     joined_at: string;
     members_count: number;
+}
+
+export interface RoomInviteCode {
+    room_invite_id: number;
+    room_id: number;
+    invite_code_creator_id: number;
+    invite_code: string;
+    access: 'view' | 'edit';
+    expire_time: string;
+    created_at: string;
+}
+
+export interface CreateInviteCodeRequest {
+    access?: 'view' | 'edit';
+    expire_time?: string;
+}
+
+export interface JoinByInviteCodeRequest {
+    invite_code: string;
 }
 
 function authHeader() {
@@ -55,5 +75,42 @@ export const roomService = {
                 headers: authHeader(),
             },
         );
+    },
+
+    async createInviteCode(
+        roomId: string,
+        payload: CreateInviteCodeRequest,
+    ): Promise<RoomInviteCode> {
+        const { data } = await axios.post<ApiResponseDTO<RoomInviteCode>>(
+            `${apiBaseUrl}/rooms/${roomId}/invite-codes`,
+            payload,
+            {
+                headers: authHeader(),
+            },
+        );
+        return data.data;
+    },
+
+    async getInviteCodes(roomId: string): Promise<RoomInviteCode[]> {
+        const { data } = await axios.get<ApiResponseDTO<RoomInviteCode[]>>(
+            `${apiBaseUrl}/rooms/${roomId}/invite-codes`,
+            {
+                headers: authHeader(),
+            },
+        );
+        return data.data;
+    },
+
+    async joinByInviteCode(
+        payload: JoinByInviteCodeRequest,
+    ): Promise<RoomMember> {
+        const { data } = await axios.post<ApiResponseDTO<RoomMember>>(
+            `${apiBaseUrl}/rooms/join-by-invite-code`,
+            payload,
+            {
+                headers: authHeader(),
+            },
+        );
+        return data.data;
     },
 };
