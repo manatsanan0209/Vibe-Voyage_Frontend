@@ -12,6 +12,7 @@ import MyTrips from './page/MyTrips';
 import MainLayout from '@/components/layout/MainLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import JoinTripLifestyle from '@/page/JoinTripLifestyle';
 
 export function App() {
     return (
@@ -29,8 +30,12 @@ export function App() {
                             element={<CreateTripPage />}
                         />
                         <Route
-                            path="/createroom/:tripId"
+                            path="/your-trips/:id"
                             element={<CreateRoom />}
+                        />
+                        <Route
+                            path="/your-trips/:id/lifestyle"
+                            element={<JoinTripLifestyle />}
                         />
                         <Route
                             path="/tripinformation"

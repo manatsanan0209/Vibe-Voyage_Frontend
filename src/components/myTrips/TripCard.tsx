@@ -8,6 +8,8 @@ export interface TripCardProps {
     imageUrl: string;
     lastEdited: string;
     collaborators: Collaborator[];
+    onClick?: () => void;
+    clickable?: boolean;
 }
 
 const MAX_VISIBLE_AVATARS = 2;
@@ -17,12 +19,19 @@ export default function TripCard({
     imageUrl,
     lastEdited,
     collaborators,
+    onClick,
+    clickable = false,
 }: TripCardProps) {
     const visibleAvatars = collaborators.slice(0, MAX_VISIBLE_AVATARS);
     const overflowCount = collaborators.length - MAX_VISIBLE_AVATARS;
 
     return (
-        <div className="w-full rounded-lg border border-indigo-400 bg-white overflow-hidden flex flex-col">
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={!clickable}
+            className="w-full rounded-lg border border-indigo-400 bg-white overflow-hidden flex flex-col text-left disabled:opacity-70 disabled:cursor-not-allowed enabled:cursor-pointer enabled:hover:shadow-sm enabled:hover:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        >
             {/* Image section */}
             <div className="w-full aspect-183/90 overflow-hidden">
                 <img
@@ -62,6 +71,6 @@ export default function TripCard({
                     </div>
                 </div>
             </div>
-        </div>
+        </button>
     );
 }

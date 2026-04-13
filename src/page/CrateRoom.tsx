@@ -1,12 +1,37 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import { useLocation, useParams } from 'react-router-dom';
 import { MdMoreHoriz, MdIosShare, MdSave } from 'react-icons/md';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useSidebar } from '@/components/ui/sidebar';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import RoomMembers from '@/components/room/RoomMembers';
 import RoomPlanning from '@/components/room/RoomPlanning';
+import { useAuth } from '@/context/AuthContext';
+import {
+    roomService,
+    type CreateInviteCodeRequest,
+    type RoomInviteCode,
+    type RoomMember,
+} from '@/services/room.service';
 import { tripService } from '@/services/trip.service';
+import type { ApiErrorResponseDTO } from '@/types/api';
 import type { PlaceSuggestion } from '@/types/place';
 import type { ScheduleDay } from '@/types/schedule';
 
@@ -21,14 +46,119 @@ function formatDateLabel(dateStr: string): string {
     });
 }
 
+type InviteExpireChoice = '12h' | '1d' | '3d' | '7d' | 'unlimited';
+
+function getExpireTimeByChoice(choice: InviteExpireChoice): string | undefined {
+    if (choice === 'unlimited') {
+        return undefined;
+    }
+
+    const now = Date.now();
+    const msByChoice: Record<
+        Exclude<InviteExpireChoice, 'unlimited'>,
+        number
+    > = {
+        '12h': 12 * 60 * 60 * 1000,
+        '1d': 24 * 60 * 60 * 1000,
+        '3d': 3 * 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+    };
+
+    return new Date(now + msByChoice[choice]).toISOString();
+}
+
+function getExpireChoiceDescription(choice: InviteExpireChoice): string {
+    switch (choice) {
+        case '12h':
+            return 'หมดอายุใน 12 ชั่วโมงจากเวลาปัจจุบัน';
+        case '1d':
+            return 'หมดอายุใน 1 วันจากเวลาปัจจุบัน';
+        case '3d':
+            return 'หมดอายุใน 3 วันจากเวลาปัจจุบัน';
+        case '7d':
+            return 'หมดอายุใน 7 วันจากเวลาปัจจุบัน';
+        case 'unlimited':
+            return 'ไม่ส่ง expire_time ไปใน payload (ขึ้นกับการตีความของ backend)';
+        default:
+            return '';
+    }
+}
+
+function getApiErrorMessage(error: unknown): string {
+    if (axios.isAxiosError<ApiErrorResponseDTO>(error)) {
+        return (
+            error.response?.data?.error ||
+            error.response?.data?.message ||
+            'ไม่สามารถสร้าง invite code ได้'
+        );
+    }
+
+    return 'ไม่สามารถสร้าง invite code ได้';
+}
+
+function normalizeInviteAccessLabel(access: RoomInviteCode['access']): string {
+    if (access === 1 || access === 'edit') {
+        return 'edit';
+    }
+    if (access === 2 || access === 'view') {
+        return 'view';
+    }
+    return 'unknown';
+}
+
+function formatInviteDateTime(value?: string): string {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    return date.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function resolveRoomIdFromMembers(
+    routeId: string,
+    members: RoomMember[],
+): string {
+    const roomId = members[0]?.room_id;
+    return roomId ? String(roomId) : routeId;
+}
+
 export default function CreateRoom() {
-    const { tripId } = useParams<{ tripId: string }>();
+    const { id } = useParams<{ id: string }>();
+    const location = useLocation();
     const { setOpen } = useSidebar();
+    const { user } = useAuth();
+    const joinedRoleFromState =
+        (location.state as { joinedRole?: number } | null)?.joinedRole ?? null;
 
     const [places, setPlaces] = useState<PlaceSuggestion[]>([]);
     const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [currentRole, setCurrentRole] = useState<number | null>(
+        joinedRoleFromState,
+    );
+    const [shareRoomId, setShareRoomId] = useState<string>('');
+    const [inviteAccess, setInviteAccess] = useState<'view' | 'edit'>('view');
+    const [inviteExpireChoice, setInviteExpireChoice] =
+        useState<InviteExpireChoice>('1d');
+    const [inviteSubmitting, setInviteSubmitting] = useState(false);
+    const [inviteError, setInviteError] = useState<string | null>(null);
+    const [createdInvite, setCreatedInvite] = useState<RoomInviteCode | null>(
+        null,
+    );
+    const [copied, setCopied] = useState(false);
+    const [inviteHistory, setInviteHistory] = useState<RoomInviteCode[]>([]);
+    const [inviteHistoryLoading, setInviteHistoryLoading] = useState(false);
+    const [inviteHistoryError, setInviteHistoryError] = useState<string | null>(
+        null,
+    );
+    const [inviteHistoryLoaded, setInviteHistoryLoaded] = useState(false);
 
     useEffect(() => {
         setOpen(false);
@@ -36,10 +166,10 @@ export default function CreateRoom() {
     }, [setOpen]);
 
     useEffect(() => {
-        console.log('tripId from URL:', tripId);
-        if (!tripId) return;
+        console.log('id from URL:', id);
+        if (!id) return;
         tripService
-            .getSchedule(tripId)
+            .getSchedule(id)
             .then(({ suggestions, days }) => {
                 setPlaces(suggestions);
                 const mapped: ScheduleDay[] = days.map((day) => ({
@@ -56,7 +186,39 @@ export default function CreateRoom() {
                 setError('ไม่สามารถโหลดข้อมูลตารางเดินทางได้');
             })
             .finally(() => setLoading(false));
-    }, [tripId]);
+    }, [id]);
+
+    useEffect(() => {
+        if (!id || !user?.id) return;
+
+        let active = true;
+        roomService
+            .getMembers(id)
+            .then((members) => {
+                if (!active) return;
+                const me = members.find((member) => member.user_id === user.id);
+                if (me?.role != null) {
+                    setCurrentRole(me.role);
+                } else if (joinedRoleFromState == null) {
+                    setCurrentRole(null);
+                }
+                setShareRoomId(resolveRoomIdFromMembers(id, members));
+            })
+            .catch(() => {
+                if (!active) return;
+                if (joinedRoleFromState == null) {
+                    setCurrentRole(null);
+                }
+                setShareRoomId(id);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [id, joinedRoleFromState, user?.id]);
+
+    const isOwner = currentRole === 1;
+    const canEdit = currentRole !== 3;
 
     useEffect(() => {
         console.log('[DnD] Data changed:', { places, schedule });
@@ -79,10 +241,98 @@ export default function CreateRoom() {
     }, [schedule]);
 
     const handleSavePlan = useCallback(() => {
+        if (!canEdit) return;
         const payload = buildPayload();
         console.log('[SavePlan] payload:', JSON.stringify(payload, null, 2));
         // TODO: call POST /trips and POST /trip-schedules with payload
-    }, [buildPayload]);
+    }, [buildPayload, canEdit]);
+
+    const handleShareOpenChange = useCallback((open: boolean) => {
+        setShareOpen(open);
+        if (!open) return;
+
+        setInviteAccess('view');
+        setInviteExpireChoice('1d');
+        setInviteError(null);
+        setCreatedInvite(null);
+        setCopied(false);
+        setInviteHistory([]);
+        setInviteHistoryError(null);
+        setInviteHistoryLoaded(false);
+    }, []);
+
+    const handleCreateInviteCode = useCallback(async () => {
+        if (!shareRoomId) {
+            setInviteError('ไม่พบ room id สำหรับสร้าง invite code');
+            return;
+        }
+
+        setInviteSubmitting(true);
+        setInviteError(null);
+
+        try {
+            // Convert string access to integer: 'edit' = 1, 'view' = 2
+            const accessValue = inviteAccess === 'edit' ? 1 : 2;
+
+            const payload: CreateInviteCodeRequest = {
+                access: accessValue,
+            };
+
+            const expireTime = getExpireTimeByChoice(inviteExpireChoice);
+            if (expireTime) {
+                payload.expire_time = expireTime;
+            }
+
+            const invite = await roomService.createInviteCode(
+                shareRoomId,
+                payload,
+            );
+            setCreatedInvite(invite);
+        } catch (err) {
+            setInviteError(getApiErrorMessage(err));
+        } finally {
+            setInviteSubmitting(false);
+        }
+    }, [inviteAccess, inviteExpireChoice, shareRoomId]);
+
+    const handleCopyInviteCode = useCallback(async () => {
+        if (!createdInvite?.invite_code) return;
+
+        try {
+            await navigator.clipboard.writeText(createdInvite.invite_code);
+            setCopied(true);
+        } catch {
+            setCopied(false);
+            setInviteError('คัดลอก invite code ไม่สำเร็จ');
+        }
+    }, [createdInvite?.invite_code]);
+
+    const handleLoadInviteHistory = useCallback(async () => {
+        if (!shareRoomId) {
+            setInviteHistoryError(
+                'ไม่พบ room id สำหรับโหลดประวัติ invite code',
+            );
+            return;
+        }
+
+        setInviteHistoryLoading(true);
+        setInviteHistoryError(null);
+
+        try {
+            const history = await roomService.getInviteCodeHistory(shareRoomId);
+            const sortedHistory = [...history].sort(
+                (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime(),
+            );
+            setInviteHistory(sortedHistory);
+            setInviteHistoryLoaded(true);
+        } catch (err) {
+            setInviteHistoryError(getApiErrorMessage(err));
+        } finally {
+            setInviteHistoryLoading(false);
+        }
+    }, [shareRoomId]);
 
     if (loading) {
         return (
@@ -101,29 +351,41 @@ export default function CreateRoom() {
     }
 
     return (
-        <div className="h-[calc(100dvh-6rem)] w-full flex flex-col overflow-hidden">
+        <div className="h-[calc(100dvh-6rem)] w-full flex flex-col gap-6 overflow-hidden">
             <div className="flex flex-row items-end justify-end gap-6 pr-6 shrink-0">
                 <Button className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent">
                     <MdMoreHoriz />
                     More
                 </Button>
-                <Button className="h-auto rounded-md font-semibold bg-white text-indigo-600 border-2 border-indigo-600 hover:bg-indigo-50">
-                    <MdIosShare />
-                    Share
-                </Button>
+                {isOwner && (
+                    <Button
+                        className="h-auto rounded-md font-semibold bg-white text-indigo-600 border-2 border-indigo-600 hover:bg-indigo-50"
+                        onClick={() => handleShareOpenChange(true)}
+                    >
+                        <MdIosShare />
+                        Share
+                    </Button>
+                )}
                 <Button
                     className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent"
                     onClick={handleSavePlan}
+                    disabled={!canEdit}
                 >
                     <MdSave />
                     Save Plan
                 </Button>
             </div>
 
+            {!canEdit && (
+                <p className="text-sm text-amber-700 px-6">
+                    ห้องนี้เป็นโหมดดูอย่างเดียว คุณยังไม่สามารถแก้ไขแผนได้
+                </p>
+            )}
+
             <Tabs defaultValue="planning" className="flex-1 min-h-0">
                 <TabsList
                     variant="line"
-                    className="w-full justify-start rounded-lg bg-transparent border-b border-foreground/10 shrink-0"
+                    className="w-full justify-start rounded-lg bg-transparent border-b border-foreground/10 shrink-0 mb-4"
                 >
                     <TabsTrigger value="planning" className="text-base">
                         Planning Trip
@@ -142,6 +404,7 @@ export default function CreateRoom() {
                         setPlaces={setPlaces}
                         schedule={schedule}
                         setSchedule={setSchedule}
+                        readOnly={!canEdit}
                     />
                 </TabsContent>
 
@@ -149,9 +412,221 @@ export default function CreateRoom() {
                     value="member"
                     className="flex-1 min-h-0 overflow-y-auto"
                 >
-                    <RoomMembers tripId={tripId ?? ''} />
+                    <RoomMembers
+                        roomId={shareRoomId || id || ''}
+                        tripId={id || ''}
+                    />
                 </TabsContent>
             </Tabs>
+
+            <Dialog open={shareOpen} onOpenChange={handleShareOpenChange}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Create Invite Code</DialogTitle>
+                        <DialogDescription>
+                            สร้างโค้ดเพื่อเชิญสมาชิกเข้าห้องนี้
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!isOwner && (
+                        <p className="text-sm text-red-600">
+                            เฉพาะ owner เท่านั้นที่สามารถสร้าง invite code ได้
+                        </p>
+                    )}
+
+                    {isOwner && (
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="invite-access">Access</Label>
+                                <Select
+                                    value={inviteAccess}
+                                    onValueChange={(value) =>
+                                        setInviteAccess(
+                                            value as 'view' | 'edit',
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="invite-access"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select access" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="view">
+                                            view
+                                        </SelectItem>
+                                        <SelectItem value="edit">
+                                            edit
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="invite-expire-choice">
+                                    Expire Time
+                                </Label>
+                                <Select
+                                    value={inviteExpireChoice}
+                                    onValueChange={(value) =>
+                                        setInviteExpireChoice(
+                                            value as InviteExpireChoice,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="invite-expire-choice"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select expire time" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="12h">
+                                            12 hours
+                                        </SelectItem>
+                                        <SelectItem value="1d">
+                                            1 day
+                                        </SelectItem>
+                                        <SelectItem value="3d">
+                                            3 days
+                                        </SelectItem>
+                                        <SelectItem value="7d">
+                                            7 days
+                                        </SelectItem>
+                                        <SelectItem value="unlimited">
+                                            Unlimited
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-foreground/60">
+                                    {getExpireChoiceDescription(
+                                        inviteExpireChoice,
+                                    )}
+                                </p>
+                            </div>
+
+                            {createdInvite && (
+                                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 space-y-2">
+                                    <p className="text-xs text-emerald-700">
+                                        Invite code สร้างสำเร็จ
+                                    </p>
+                                    <p className="font-semibold tracking-wide text-emerald-900">
+                                        {createdInvite.invite_code}
+                                    </p>
+                                    <p className="text-xs text-emerald-700">
+                                        หมดอายุ: {createdInvite.expire_time}
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={handleCopyInviteCode}
+                                    >
+                                        {copied
+                                            ? 'คัดลอกแล้ว'
+                                            : 'คัดลอก invite code'}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {inviteError && (
+                                <p className="text-sm text-red-600">
+                                    {inviteError}
+                                </p>
+                            )}
+
+                            <div className="space-y-2 rounded-md border border-indigo-100 bg-indigo-50/40 p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-semibold text-indigo-900">
+                                        Invite code history
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleLoadInviteHistory}
+                                        disabled={inviteHistoryLoading}
+                                    >
+                                        {inviteHistoryLoading
+                                            ? 'กำลังโหลด...'
+                                            : inviteHistoryLoaded
+                                                ? 'รีเฟรช'
+                                                : 'ดูประวัติ'}
+                                    </Button>
+                                </div>
+
+                                {inviteHistoryError && (
+                                    <p className="text-sm text-red-600">
+                                        {inviteHistoryError}
+                                    </p>
+                                )}
+
+                                {inviteHistoryLoaded &&
+                                    !inviteHistoryLoading &&
+                                    inviteHistory.length === 0 && (
+                                        <p className="text-xs text-indigo-700">
+                                            ยังไม่มีประวัติ invite code
+                                        </p>
+                                    )}
+
+                                {inviteHistory.length > 0 && (
+                                    <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+                                        {inviteHistory.map((item) => (
+                                            <div
+                                                key={item.room_invite_id}
+                                                className="rounded-md border border-indigo-100 bg-white p-2"
+                                            >
+                                                <p className="font-semibold tracking-wide text-indigo-900">
+                                                    {item.invite_code}
+                                                </p>
+                                                <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-indigo-700">
+                                                    <p>
+                                                        Access:{' '}
+                                                        {normalizeInviteAccessLabel(
+                                                            item.access,
+                                                        )}
+                                                    </p>
+                                                    <p>
+                                                        Expire:{' '}
+                                                        {formatInviteDateTime(
+                                                            item.expire_time,
+                                                        )}
+                                                    </p>
+                                                    <p className="col-span-2">
+                                                        Created:{' '}
+                                                        {formatInviteDateTime(
+                                                            item.created_at,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShareOpen(false)}
+                        >
+                            ปิด
+                        </Button>
+                        {isOwner && (
+                            <Button
+                                onClick={handleCreateInviteCode}
+                                disabled={inviteSubmitting}
+                            >
+                                {inviteSubmitting
+                                    ? 'กำลังสร้าง...'
+                                    : 'สร้าง invite code'}
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

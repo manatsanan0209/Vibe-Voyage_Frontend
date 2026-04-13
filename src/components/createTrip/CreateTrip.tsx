@@ -76,7 +76,7 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                 food_vibes: vibeForm.foodVibes,
                 additional_notes: vibeForm.extra,
             });
-            navigate(`/createroom/${result.trip_id}`);
+            navigate(`/your-trips/${result.trip_id}`);
         } catch (err) {
             console.error('Error creating trip:', err);
             setIsSubmitting(false);
