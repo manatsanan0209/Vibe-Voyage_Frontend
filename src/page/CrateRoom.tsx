@@ -96,6 +96,29 @@ function getApiErrorMessage(error: unknown): string {
     return 'ไม่สามารถสร้าง invite code ได้';
 }
 
+function normalizeInviteAccessLabel(access: RoomInviteCode['access']): string {
+    if (access === 1 || access === 'edit') {
+        return 'edit';
+    }
+    if (access === 2 || access === 'view') {
+        return 'view';
+    }
+    return 'unknown';
+}
+
+function formatInviteDateTime(value?: string): string {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    return date.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 function resolveRoomIdFromMembers(
     routeId: string,
     members: RoomMember[],
@@ -130,6 +153,12 @@ export default function CreateRoom() {
         null,
     );
     const [copied, setCopied] = useState(false);
+    const [inviteHistory, setInviteHistory] = useState<RoomInviteCode[]>([]);
+    const [inviteHistoryLoading, setInviteHistoryLoading] = useState(false);
+    const [inviteHistoryError, setInviteHistoryError] = useState<string | null>(
+        null,
+    );
+    const [inviteHistoryLoaded, setInviteHistoryLoaded] = useState(false);
 
     useEffect(() => {
         setOpen(false);
@@ -227,6 +256,9 @@ export default function CreateRoom() {
         setInviteError(null);
         setCreatedInvite(null);
         setCopied(false);
+        setInviteHistory([]);
+        setInviteHistoryError(null);
+        setInviteHistoryLoaded(false);
     }, []);
 
     const handleCreateInviteCode = useCallback(async () => {
@@ -239,8 +271,11 @@ export default function CreateRoom() {
         setInviteError(null);
 
         try {
+            // Convert string access to integer: 'edit' = 1, 'view' = 2
+            const accessValue = inviteAccess === 'edit' ? 1 : 2;
+
             const payload: CreateInviteCodeRequest = {
-                access: inviteAccess,
+                access: accessValue,
             };
 
             const expireTime = getExpireTimeByChoice(inviteExpireChoice);
@@ -271,6 +306,33 @@ export default function CreateRoom() {
             setInviteError('คัดลอก invite code ไม่สำเร็จ');
         }
     }, [createdInvite?.invite_code]);
+
+    const handleLoadInviteHistory = useCallback(async () => {
+        if (!shareRoomId) {
+            setInviteHistoryError(
+                'ไม่พบ room id สำหรับโหลดประวัติ invite code',
+            );
+            return;
+        }
+
+        setInviteHistoryLoading(true);
+        setInviteHistoryError(null);
+
+        try {
+            const history = await roomService.getInviteCodeHistory(shareRoomId);
+            const sortedHistory = [...history].sort(
+                (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime(),
+            );
+            setInviteHistory(sortedHistory);
+            setInviteHistoryLoaded(true);
+        } catch (err) {
+            setInviteHistoryError(getApiErrorMessage(err));
+        } finally {
+            setInviteHistoryLoading(false);
+        }
+    }, [shareRoomId]);
 
     if (loading) {
         return (
@@ -350,7 +412,10 @@ export default function CreateRoom() {
                     value="member"
                     className="flex-1 min-h-0 overflow-y-auto"
                 >
-                    <RoomMembers tripId={id ?? ''} />
+                    <RoomMembers
+                        roomId={shareRoomId || id || ''}
+                        tripId={id || ''}
+                    />
                 </TabsContent>
             </Tabs>
 
@@ -469,6 +534,76 @@ export default function CreateRoom() {
                                     {inviteError}
                                 </p>
                             )}
+
+                            <div className="space-y-2 rounded-md border border-indigo-100 bg-indigo-50/40 p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-semibold text-indigo-900">
+                                        Invite code history
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleLoadInviteHistory}
+                                        disabled={inviteHistoryLoading}
+                                    >
+                                        {inviteHistoryLoading
+                                            ? 'กำลังโหลด...'
+                                            : inviteHistoryLoaded
+                                                ? 'รีเฟรช'
+                                                : 'ดูประวัติ'}
+                                    </Button>
+                                </div>
+
+                                {inviteHistoryError && (
+                                    <p className="text-sm text-red-600">
+                                        {inviteHistoryError}
+                                    </p>
+                                )}
+
+                                {inviteHistoryLoaded &&
+                                    !inviteHistoryLoading &&
+                                    inviteHistory.length === 0 && (
+                                        <p className="text-xs text-indigo-700">
+                                            ยังไม่มีประวัติ invite code
+                                        </p>
+                                    )}
+
+                                {inviteHistory.length > 0 && (
+                                    <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+                                        {inviteHistory.map((item) => (
+                                            <div
+                                                key={item.room_invite_id}
+                                                className="rounded-md border border-indigo-100 bg-white p-2"
+                                            >
+                                                <p className="font-semibold tracking-wide text-indigo-900">
+                                                    {item.invite_code}
+                                                </p>
+                                                <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-indigo-700">
+                                                    <p>
+                                                        Access:{' '}
+                                                        {normalizeInviteAccessLabel(
+                                                            item.access,
+                                                        )}
+                                                    </p>
+                                                    <p>
+                                                        Expire:{' '}
+                                                        {formatInviteDateTime(
+                                                            item.expire_time,
+                                                        )}
+                                                    </p>
+                                                    <p className="col-span-2">
+                                                        Created:{' '}
+                                                        {formatInviteDateTime(
+                                                            item.created_at,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 

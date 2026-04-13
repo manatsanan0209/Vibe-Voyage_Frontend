@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NewTripCard from '@/components/myTrips/NewTripCard';
 import TripCard, { type Collaborator } from '@/components/myTrips/TripCard';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { roomService, type UserRoomSummary } from '@/services/room.service';
 import type { ApiErrorResponseDTO } from '@/types/api';
@@ -62,6 +64,7 @@ export default function MyTrips() {
     const [rooms, setRooms] = useState<UserRoomSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const showNewTripCard = !loading && !error;
 
     useEffect(() => {
         if (!user?.id) {
@@ -99,22 +102,47 @@ export default function MyTrips() {
                 </h1>
 
                 <div className="grid gap-10 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                    <NewTripCard />
+                    {showNewTripCard && <NewTripCard />}
 
                     {loading && (
-                        <div className="sm:col-span-2 md:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-indigo-200 bg-white px-4 py-8 text-center text-sm text-indigo-700">
-                            กำลังโหลดทริปของคุณ...
+                        <div
+                            className={`rounded-lg border border-dashed border-indigo-200 bg-white p-4 sm:p-6 ${showNewTripCard
+                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                }`}
+                        >
+                            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                                <Skeleton className="h-52 w-full rounded-xl" />
+                                <Skeleton className="h-52 w-full rounded-xl" />
+                                <Skeleton className="h-52 w-full rounded-xl" />
+                            </div>
+                            <div className="mt-5 flex items-center justify-center gap-2 text-indigo-700">
+                                <Loader2 className="size-4 animate-spin" />
+                                <span className="text-sm font-medium">
+                                    กำลังโหลดทริปของคุณ...
+                                </span>
+                            </div>
                         </div>
                     )}
 
                     {!loading && error && (
-                        <div className="sm:col-span-2 md:col-span-2 xl:col-span-3 rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-600">
+                        <div
+                            className={`rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-600 ${showNewTripCard
+                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                }`}
+                        >
                             {error}
                         </div>
                     )}
 
                     {!loading && !error && rooms.length === 0 && (
-                        <div className="sm:col-span-2 md:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-indigo-200 bg-white px-4 py-8 text-center text-sm text-indigo-700">
+                        <div
+                            className={`rounded-lg border border-dashed border-indigo-200 bg-white px-4 py-8 text-center text-sm text-indigo-700 ${showNewTripCard
+                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                }`}
+                        >
                             ยังไม่มีทริปในตอนนี้ ลองกดสร้างทริปใหม่ได้เลย
                         </div>
                     )}

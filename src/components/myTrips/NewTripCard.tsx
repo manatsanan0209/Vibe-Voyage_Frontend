@@ -12,6 +12,17 @@ export default function NewTripCard() {
     }
 
     function handleJoinSuccess(data: JoinTripByInviteCodeDataDTO) {
+        if (data.role === 2) {
+            navigate(`/your-trips/${data.trip_id}/lifestyle`, {
+                state: {
+                    roomId: String(data.room_id),
+                    joinedRole: data.role,
+                    fromJoin: true,
+                },
+            });
+            return;
+        }
+
         navigate(`/your-trips/${data.trip_id}`, {
             state: {
                 joinedRole: data.role,

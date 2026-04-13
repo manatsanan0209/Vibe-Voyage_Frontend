@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import type { JoinTripByInviteCodeDataDTO } from '@/services/trip.service';
 import { useJoinTripByInviteCode } from '@/hooks/useJoinTripByInviteCode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import inviteCodeIcon from '@/assets/createTrip/invite_code.png';
 
 interface JoinRoomProps {
     onBack: () => void;
@@ -25,41 +27,51 @@ export default function JoinRoom({ onBack, onSuccess }: JoinRoomProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <button
-                type="button"
-                onClick={onBack}
-                className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-            >
-                Back
-            </button>
-
-            <div className="space-y-1.5">
-                <label
-                    htmlFor="invite-code"
-                    className="text-sm font-semibold text-indigo-900"
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex items-center justify-start">
+                <button
+                    type="button"
+                    onClick={onBack}
+                    aria-label="Back"
+                    className="text-slate-500 hover:text-indigo-700 transition-colors"
                 >
-                    Invitation Code
-                </label>
-                <Input
-                    id="invite-code"
-                    value={inviteCode}
-                    onChange={(event) => setInviteCode(event.target.value)}
-                    placeholder="Enter the invitation code"
-                    autoComplete="off"
-                    className="uppercase tracking-[0.2em]"
-                />
+                    <ArrowLeft className="size-4" />
+                </button>
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            <div className="space-y-4">
+                <p className="text-center text-base font-semibold text-zinc-900">
+                    Enter the invitation code
+                </p>
 
-            <Button
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700"
-                disabled={isLoading}
-            >
-                {isLoading ? 'Joining...' : 'Join'}
-            </Button>
+                <div className="relative max-w-34 mx-auto">
+                    <img
+                        src={inviteCodeIcon}
+                        alt="Invite code"
+                        className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 opacity-70"
+                    />
+                    <Input
+                        id="invite-code"
+                        value={inviteCode}
+                        onChange={(event) => setInviteCode(event.target.value)}
+                        placeholder="Invitation Code"
+                        autoComplete="off"
+                        className="h-8 border-zinc-300 bg-zinc-50 pl-7 text-[11px] tracking-normal text-center placeholder:text-zinc-400"
+                    />
+                </div>
+            </div>
+
+            {error && <p className="text-center text-sm text-red-600">{error}</p>}
+
+            <div className="flex justify-center">
+                <Button
+                    type="submit"
+                    className="h-8 min-w-17 rounded-md bg-indigo-600 px-7 text-xs font-semibold hover:bg-indigo-700"
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Joining...' : 'Join'}
+                </Button>
+            </div>
         </form>
     );
 }

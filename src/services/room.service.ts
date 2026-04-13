@@ -10,8 +10,19 @@ export interface RoomMember {
     user_id: number;
     username: string;
     role: number;
-    role_name: 'owner' | 'member' | 'spectator' | 'unknown';
+    role_name: 'owner' | 'room_owner' | 'member' | 'spectator' | 'unknown';
     created_at: string;
+}
+
+export interface RoomMemberLifestyleSubmission {
+    room_member_id: number;
+    room_id: number;
+    user_id: number;
+    username: string;
+    role: number;
+    role_name: 'owner' | 'room_owner' | 'member' | 'spectator' | 'unknown';
+    has_submitted_lifestyle: boolean;
+    lifestyle_id: number | null;
 }
 
 export interface UserRoomSummary {
@@ -32,18 +43,38 @@ export interface RoomInviteCode {
     room_id: number;
     invite_code_creator_id: number;
     invite_code: string;
-    access: 'view' | 'edit';
+    access: 'view' | 'edit' | 1 | 2;
     expire_time: string;
     created_at: string;
 }
 
 export interface CreateInviteCodeRequest {
-    access?: 'view' | 'edit';
+    access?: number; // 1 = edit, 2 = view
     expire_time?: string;
 }
 
 export interface JoinByInviteCodeRequest {
     invite_code: string;
+}
+
+export interface RoomLifestylePreferredDestinationDTO {
+    destination_name: string;
+    destination_id: string;
+    latitude?: number;
+    longitude?: number;
+}
+
+export interface SubmitRoomLifestyleRequestDTO {
+    preferred_destinations: RoomLifestylePreferredDestinationDTO[];
+    travel_vibes: string[];
+    voyage_priorities: string[];
+    food_vibes: string[];
+    additional_notes: string;
+}
+
+export interface SubmitRoomLifestyleResponseDTO {
+    status: number;
+    message: string;
 }
 
 function authHeader() {
@@ -65,6 +96,17 @@ export const roomService = {
             `${apiBaseUrl}/rooms/${roomId}/members`,
             { headers: authHeader() },
         );
+        return data.data;
+    },
+
+    async getMembersLifestyleSubmissions(
+        roomId: string,
+    ): Promise<RoomMemberLifestyleSubmission[]> {
+        const { data } = await axios.get<
+            ApiResponseDTO<RoomMemberLifestyleSubmission[]>
+        >(`${apiBaseUrl}/rooms/${roomId}/members/lifestyle-submissions`, {
+            headers: authHeader(),
+        });
         return data.data;
     },
 
@@ -101,6 +143,16 @@ export const roomService = {
         return data.data;
     },
 
+    async getInviteCodeHistory(roomId: string): Promise<RoomInviteCode[]> {
+        const { data } = await axios.get<ApiResponseDTO<RoomInviteCode[]>>(
+            `${apiBaseUrl}/rooms/${roomId}/invite-codes/history`,
+            {
+                headers: authHeader(),
+            },
+        );
+        return data.data;
+    },
+
     async joinByInviteCode(
         payload: JoinByInviteCodeRequest,
     ): Promise<RoomMember> {
@@ -112,5 +164,19 @@ export const roomService = {
             },
         );
         return data.data;
+    },
+
+    async submitLifestyle(
+        roomId: string,
+        payload: SubmitRoomLifestyleRequestDTO,
+    ): Promise<SubmitRoomLifestyleResponseDTO> {
+        const { data } = await axios.post<SubmitRoomLifestyleResponseDTO>(
+            `${apiBaseUrl}/rooms/${roomId}/lifestyle`,
+            payload,
+            {
+                headers: authHeader(),
+            },
+        );
+        return data;
     },
 };

@@ -46,25 +46,26 @@ export default function MainModal({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>
-                        {mode === 'choice'
-                            ? 'Start your next trip'
-                            : 'Join trip by invite code'}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {mode === 'choice'
-                            ? 'Choose how you want to continue.'
-                            : 'Enter the invitation code to join this trip.'}
-                    </DialogDescription>
-                </DialogHeader>
+            <DialogContent
+                className={`${mode === 'choice'
+                        ? 'sm:max-w-md'
+                        : 'sm:max-w-88 px-4 py-5 [&>button]:text-pink-500'
+                    }`}
+            >
+                {mode === 'choice' && (
+                    <DialogHeader>
+                        <DialogTitle>Start your next trip</DialogTitle>
+                        <DialogDescription>
+                            Choose how you want to continue.
+                        </DialogDescription>
+                    </DialogHeader>
+                )}
 
                 {mode === 'choice' ? (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-4 my-3">
                         <Button
                             type="button"
-                            className="h-24 bg-indigo-600 hover:bg-indigo-700"
+                            className="bg-indigo-600 hover:bg-indigo-700 mx-3"
                             onClick={handleCreate}
                         >
                             Create
@@ -72,7 +73,7 @@ export default function MainModal({
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-24 border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 mx-3"
                             onClick={() => setMode('join')}
                         >
                             Join
