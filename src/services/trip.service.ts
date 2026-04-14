@@ -112,6 +112,35 @@ interface GetScheduleResponseData {
     days: RawScheduleDay[];
 }
 
+export interface ReplaceTripScheduleItemDTO {
+    day_number: number;
+    sequence_order: number;
+    place_name: string;
+    place_id: string;
+    latitude: number;
+    longitude: number;
+    start_time: string;
+    end_time: string;
+    type: string;
+}
+
+export interface ReplaceTripScheduleRequestDTO {
+    items: ReplaceTripScheduleItemDTO[];
+}
+
+export interface TripScheduleItemResponseDTO {
+    trip_schedule_id: number;
+    day_number: number;
+    sequence_order: number;
+    place_name: string;
+    place_id: string;
+    latitude: number;
+    longitude: number;
+    start_time: string;
+    end_time: string;
+    type: string;
+}
+
 // ---------- service ----------
 
 export const tripService = {
@@ -215,5 +244,18 @@ export const tripService = {
             });
 
         return { suggestions, days };
+    },
+
+    async replaceSchedule(
+        tripId: string,
+        dto: ReplaceTripScheduleRequestDTO,
+    ): Promise<TripScheduleItemResponseDTO[]> {
+        const { data } = await axios.put<
+            ApiResponseDTO<TripScheduleItemResponseDTO[]>
+        >(`${apiBaseUrl}/trip/${tripId}/schedule`, dto, {
+            headers: authHeader(),
+        });
+
+        return data.data;
     },
 };

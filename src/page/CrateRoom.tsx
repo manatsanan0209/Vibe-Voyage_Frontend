@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useParams } from 'react-router-dom';
-import { MdMoreHoriz, MdIosShare, MdSave } from 'react-icons/md';
+import { MdMoreHoriz, MdIosShare } from 'react-icons/md';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -30,10 +30,22 @@ import {
     type RoomInviteCode,
     type RoomMember,
 } from '@/services/room.service';
-import { tripService } from '@/services/trip.service';
+import {
+    tripService,
+    type ReplaceTripScheduleItemDTO,
+    type ReplaceTripScheduleRequestDTO,
+    type ScheduleDayResponseDTO,
+} from '@/services/trip.service';
 import type { ApiErrorResponseDTO } from '@/types/api';
-import type { PlaceSuggestion } from '@/types/place';
+import type { PlaceSuggestion, PlaceType } from '@/types/place';
 import type { ScheduleDay } from '@/types/schedule';
+
+const AUTOSAVE_DEBOUNCE_MS = 2000;
+const AUTOSAVE_RETRY_MS = 4000;
+const POLLING_INTERVAL_MS = 5000;
+const DEFAULT_UNSCHEDULED_TIME = '00:00';
+
+type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'retrying';
 
 function formatDateLabel(dateStr: string): string {
     if (!dateStr) return '';
@@ -84,16 +96,16 @@ function getExpireChoiceDescription(choice: InviteExpireChoice): string {
     }
 }
 
-function getApiErrorMessage(error: unknown): string {
+function getApiErrorMessage(error: unknown, fallback: string): string {
     if (axios.isAxiosError<ApiErrorResponseDTO>(error)) {
         return (
             error.response?.data?.error ||
             error.response?.data?.message ||
-            'ไม่สามารถสร้าง invite code ได้'
+            fallback
         );
     }
 
-    return 'ไม่สามารถสร้าง invite code ได้';
+    return fallback;
 }
 
 function normalizeInviteAccessLabel(access: RoomInviteCode['access']): string {
@@ -125,6 +137,67 @@ function resolveRoomIdFromMembers(
 ): string {
     const roomId = members[0]?.room_id;
     return roomId ? String(roomId) : routeId;
+}
+
+function normalizeTypeForScheduleApi(type: PlaceType): string {
+    switch (type) {
+        case 'Attraction':
+            return 'attraction';
+        case 'Restaurant':
+            return 'restaurant';
+        case 'Hotel':
+            return 'hotel';
+        default:
+            return 'attraction';
+    }
+}
+
+function mapScheduleDays(days: ScheduleDayResponseDTO[]): ScheduleDay[] {
+    return days.map((day) => ({
+        id: `day-${day.day_number}`,
+        day_number: day.day_number,
+        date: day.date,
+        dateLabel: formatDateLabel(day.date),
+        items: day.schedules,
+    }));
+}
+
+function buildReplaceSchedulePayload(
+    places: PlaceSuggestion[],
+    schedule: ScheduleDay[],
+): ReplaceTripScheduleRequestDTO {
+    const scheduledItems: ReplaceTripScheduleItemDTO[] = schedule.flatMap(
+        (day) =>
+            day.items.map((item, index) => ({
+                day_number: day.day_number,
+                sequence_order: index + 1,
+                place_name: item.place_name,
+                place_id: item.place_id,
+                latitude: item.location?.lat ?? 0,
+                longitude: item.location?.lng ?? 0,
+                start_time: item.start_time ?? DEFAULT_UNSCHEDULED_TIME,
+                end_time: item.end_time ?? DEFAULT_UNSCHEDULED_TIME,
+                type: normalizeTypeForScheduleApi(item.type),
+            })),
+    );
+
+    const suggestionItems: ReplaceTripScheduleItemDTO[] = places.map(
+        (place) => ({
+            day_number: 0,
+            sequence_order: 0,
+            place_name: place.name,
+            place_id: place.place_id,
+            latitude: place.location.lat,
+            longitude: place.location.lng,
+            start_time: DEFAULT_UNSCHEDULED_TIME,
+            end_time: DEFAULT_UNSCHEDULED_TIME,
+            type: normalizeTypeForScheduleApi(place.type),
+        }),
+    );
+
+    return {
+        items: [...suggestionItems, ...scheduledItems],
+    };
 }
 
 export default function CreateRoom() {
@@ -159,34 +232,72 @@ export default function CreateRoom() {
         null,
     );
     const [inviteHistoryLoaded, setInviteHistoryLoaded] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<AutoSaveStatus>('idle');
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    const latestPayloadRef = useRef<ReplaceTripScheduleRequestDTO>({
+        items: [],
+    });
+    const latestHashRef = useRef('');
+    const lastSyncedHashRef = useRef('');
+    const initializedRef = useRef(false);
+    const suppressAutosaveRef = useRef(false);
+    const saveInFlightRef = useRef(false);
+    const pollInFlightRef = useRef(false);
+    const retryTimerRef = useRef<number | null>(null);
+    const saveScheduleRef = useRef<
+        (mode: 'autosave' | 'retry') => Promise<void>
+    >(async () => { });
 
     useEffect(() => {
         setOpen(false);
         return () => setOpen(true);
     }, [setOpen]);
 
+    const applyServerSnapshot = useCallback(
+        (suggestions: PlaceSuggestion[], days: ScheduleDayResponseDTO[]) => {
+            const mappedSchedule = mapScheduleDays(days);
+            const nextPayload = buildReplaceSchedulePayload(
+                suggestions,
+                mappedSchedule,
+            );
+            const nextHash = JSON.stringify(nextPayload);
+
+            suppressAutosaveRef.current = true;
+            setPlaces(suggestions);
+            setSchedule(mappedSchedule);
+            latestPayloadRef.current = nextPayload;
+            latestHashRef.current = nextHash;
+            lastSyncedHashRef.current = nextHash;
+
+            requestAnimationFrame(() => {
+                suppressAutosaveRef.current = false;
+            });
+        },
+        [],
+    );
+
     useEffect(() => {
-        console.log('id from URL:', id);
         if (!id) return;
+
+        initializedRef.current = false;
+        setLoading(true);
+        setError(null);
+
         tripService
             .getSchedule(id)
             .then(({ suggestions, days }) => {
-                setPlaces(suggestions);
-                const mapped: ScheduleDay[] = days.map((day) => ({
-                    id: `day-${day.day_number}`,
-                    day_number: day.day_number,
-                    date: day.date,
-                    dateLabel: formatDateLabel(day.date),
-                    items: day.schedules,
-                }));
-                setSchedule(mapped);
+                applyServerSnapshot(suggestions, days);
+                initializedRef.current = true;
+                setSaveStatus('saved');
+                setSaveError(null);
             })
             .catch((err) => {
                 console.error('[CreateRoom] Failed to load schedule:', err);
                 setError('ไม่สามารถโหลดข้อมูลตารางเดินทางได้');
             })
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [applyServerSnapshot, id]);
 
     useEffect(() => {
         if (!id || !user?.id) return;
@@ -220,32 +331,152 @@ export default function CreateRoom() {
     const isOwner = currentRole === 1;
     const canEdit = currentRole !== 3;
 
+    const replacePayload = useMemo(
+        () => buildReplaceSchedulePayload(places, schedule),
+        [places, schedule],
+    );
+    const replacePayloadHash = useMemo(
+        () => JSON.stringify(replacePayload),
+        [replacePayload],
+    );
+
     useEffect(() => {
-        console.log('[DnD] Data changed:', { places, schedule });
-    }, [places, schedule]);
+        latestPayloadRef.current = replacePayload;
+        latestHashRef.current = replacePayloadHash;
+    }, [replacePayload, replacePayloadHash]);
 
-    // Build DB-ready payload from current state
-    const buildPayload = useCallback(() => {
-        const schedules = schedule.flatMap((day) =>
-            day.items.map((item) => ({
-                day_number: item.day_number,
-                sequence_order: item.sequence_order,
-                place_name: item.place_name,
-                place_id: item.place_id,
-                start_time: item.start_time ?? null,
-                end_time: item.end_time ?? null,
-                type: item.type,
-            })),
-        );
-        return { schedules };
-    }, [schedule]);
+    const saveSchedule = useCallback(
+        async (mode: 'autosave' | 'retry') => {
+            if (!id || !canEdit) return;
+            if (saveInFlightRef.current) return;
+            if (latestHashRef.current === lastSyncedHashRef.current) return;
 
-    const handleSavePlan = useCallback(() => {
-        if (!canEdit) return;
-        const payload = buildPayload();
-        console.log('[SavePlan] payload:', JSON.stringify(payload, null, 2));
-        // TODO: call POST /trips and POST /trip-schedules with payload
-    }, [buildPayload, canEdit]);
+            saveInFlightRef.current = true;
+            setSaveStatus(mode === 'retry' ? 'retrying' : 'saving');
+
+            try {
+                await tripService.replaceSchedule(id, latestPayloadRef.current);
+                lastSyncedHashRef.current = latestHashRef.current;
+                setSaveStatus('saved');
+                setSaveError(null);
+                if (retryTimerRef.current != null) {
+                    window.clearTimeout(retryTimerRef.current);
+                    retryTimerRef.current = null;
+                }
+            } catch (err) {
+                setSaveStatus('retrying');
+                setSaveError(
+                    getApiErrorMessage(err, 'ไม่สามารถบันทึกแผนการเดินทางได้'),
+                );
+
+                if (retryTimerRef.current != null) {
+                    window.clearTimeout(retryTimerRef.current);
+                }
+                retryTimerRef.current = window.setTimeout(() => {
+                    void saveScheduleRef.current('retry');
+                }, AUTOSAVE_RETRY_MS);
+            } finally {
+                saveInFlightRef.current = false;
+            }
+        },
+        [canEdit, id],
+    );
+
+    useEffect(() => {
+        saveScheduleRef.current = saveSchedule;
+    }, [saveSchedule]);
+
+    useEffect(() => {
+        if (!id || !canEdit || !initializedRef.current) return;
+        if (suppressAutosaveRef.current) return;
+        if (replacePayloadHash === lastSyncedHashRef.current) return;
+
+        const timeoutId = window.setTimeout(() => {
+            void saveSchedule('autosave');
+        }, AUTOSAVE_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [canEdit, id, replacePayloadHash, saveSchedule]);
+
+    useEffect(() => {
+        if (!id) return;
+
+        const intervalId = window.setInterval(async () => {
+            if (!initializedRef.current) return;
+            if (pollInFlightRef.current || saveInFlightRef.current) return;
+
+            pollInFlightRef.current = true;
+            try {
+                const { suggestions, days } = await tripService.getSchedule(id);
+                const mappedSchedule = mapScheduleDays(days);
+                const remotePayload = buildReplaceSchedulePayload(
+                    suggestions,
+                    mappedSchedule,
+                );
+                const remoteHash = JSON.stringify(remotePayload);
+
+                const hasUnsavedLocalChanges =
+                    latestHashRef.current !== lastSyncedHashRef.current;
+
+                if (
+                    hasUnsavedLocalChanges ||
+                    remoteHash === latestHashRef.current
+                ) {
+                    return;
+                }
+
+                suppressAutosaveRef.current = true;
+                setPlaces(suggestions);
+                setSchedule(mappedSchedule);
+                latestPayloadRef.current = remotePayload;
+                latestHashRef.current = remoteHash;
+                lastSyncedHashRef.current = remoteHash;
+                setSaveStatus('saved');
+                setSaveError(null);
+
+                requestAnimationFrame(() => {
+                    suppressAutosaveRef.current = false;
+                });
+            } catch (err) {
+                console.error('[CreateRoom] Poll schedule failed:', err);
+            } finally {
+                pollInFlightRef.current = false;
+            }
+        }, POLLING_INTERVAL_MS);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [id]);
+
+    useEffect(
+        () => () => {
+            if (retryTimerRef.current != null) {
+                window.clearTimeout(retryTimerRef.current);
+            }
+        },
+        [],
+    );
+
+    const autoSaveStatusLabel = useMemo(() => {
+        if (!canEdit) return '';
+
+        if (saveStatus === 'saving') {
+            return 'กำลังบันทึกแผนอัตโนมัติ...';
+        }
+        if (saveStatus === 'retrying') {
+            return saveError
+                ? `บันทึกไม่สำเร็จ กำลังลองใหม่... (${saveError})`
+                : 'กำลังลองบันทึกใหม่อัตโนมัติ...';
+        }
+        if (saveStatus === 'saved') {
+            return 'บันทึกแผนอัตโนมัติล่าสุดเรียบร้อย';
+        }
+
+        return 'ระบบจะบันทึกอัตโนมัติเมื่อมีการแก้ไข';
+    }, [canEdit, saveError, saveStatus]);
 
     const handleShareOpenChange = useCallback((open: boolean) => {
         setShareOpen(open);
@@ -289,7 +520,9 @@ export default function CreateRoom() {
             );
             setCreatedInvite(invite);
         } catch (err) {
-            setInviteError(getApiErrorMessage(err));
+            setInviteError(
+                getApiErrorMessage(err, 'ไม่สามารถสร้าง invite code ได้'),
+            );
         } finally {
             setInviteSubmitting(false);
         }
@@ -328,7 +561,9 @@ export default function CreateRoom() {
             setInviteHistory(sortedHistory);
             setInviteHistoryLoaded(true);
         } catch (err) {
-            setInviteHistoryError(getApiErrorMessage(err));
+            setInviteHistoryError(
+                getApiErrorMessage(err, 'ไม่สามารถโหลดประวัติ invite code ได้'),
+            );
         } finally {
             setInviteHistoryLoading(false);
         }
@@ -350,9 +585,21 @@ export default function CreateRoom() {
         );
     }
 
+    let inviteHistoryButtonLabel = 'ดูประวัติ';
+    if (inviteHistoryLoading) {
+        inviteHistoryButtonLabel = 'กำลังโหลด...';
+    } else if (inviteHistoryLoaded) {
+        inviteHistoryButtonLabel = 'รีเฟรช';
+    }
+
     return (
         <div className="h-[calc(100dvh-6rem)] w-full flex flex-col gap-6 overflow-hidden">
             <div className="flex flex-row items-end justify-end gap-6 pr-6 shrink-0">
+                {canEdit && (
+                    <p className="text-sm text-foreground/70 mr-auto px-6">
+                        {autoSaveStatusLabel}
+                    </p>
+                )}
                 <Button className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent">
                     <MdMoreHoriz />
                     More
@@ -366,14 +613,6 @@ export default function CreateRoom() {
                         Share
                     </Button>
                 )}
-                <Button
-                    className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent"
-                    onClick={handleSavePlan}
-                    disabled={!canEdit}
-                >
-                    <MdSave />
-                    Save Plan
-                </Button>
             </div>
 
             {!canEdit && (
@@ -547,11 +786,7 @@ export default function CreateRoom() {
                                         onClick={handleLoadInviteHistory}
                                         disabled={inviteHistoryLoading}
                                     >
-                                        {inviteHistoryLoading
-                                            ? 'กำลังโหลด...'
-                                            : inviteHistoryLoaded
-                                                ? 'รีเฟรช'
-                                                : 'ดูประวัติ'}
+                                        {inviteHistoryButtonLabel}
                                     </Button>
                                 </div>
 
