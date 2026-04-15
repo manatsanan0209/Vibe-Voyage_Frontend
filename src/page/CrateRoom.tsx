@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MdMoreHoriz, MdIosShare } from 'react-icons/md';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -21,9 +21,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import RoomMembers from '@/components/room/RoomMembers';
 import RoomPlanning from '@/components/room/RoomPlanning';
 import { useAuth } from '@/context/AuthContext';
+import {
+    emitCacheInvalidation,
+    subscribeCacheInvalidation,
+    type CacheInvalidationEventPayload,
+} from '@/lib/cache-events';
 import {
     roomService,
     type CreateInviteCodeRequest,
@@ -40,12 +50,29 @@ import type { ApiErrorResponseDTO } from '@/types/api';
 import type { PlaceSuggestion, PlaceType } from '@/types/place';
 import type { ScheduleDay } from '@/types/schedule';
 
-const AUTOSAVE_DEBOUNCE_MS = 2000;
+const AUTOSAVE_DEBOUNCE_MS = 1000;
 const AUTOSAVE_RETRY_MS = 4000;
-const POLLING_INTERVAL_MS = 5000;
+const POLLING_TICK_MS = 1000;
+const POLLING_SYNC_INTERVAL_MS = 5000;
+const POLLING_READINESS_INTERVAL_MS = 3000;
+const POLLING_READINESS_TIMEOUT_MS = 90000;
+const POLLING_MAX_BACKOFF_MS = 8000;
 const DEFAULT_UNSCHEDULED_TIME = '00:00';
 
 type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'retrying';
+type ScheduleReadinessStatus =
+    | 'initial-loading'
+    | 'generating'
+    | 'ready'
+    | 'timeout'
+    | 'poll-error';
+
+type RoomRouteState = {
+    joinedRole?: number;
+    fromCreateTrip?: boolean;
+    createdAt?: number;
+    lifestyleSubmitted?: boolean;
+};
 
 function formatDateLabel(dateStr: string): string {
     if (!dateStr) return '';
@@ -108,6 +135,52 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
     return fallback;
 }
 
+function getLeaveRoomErrorMessage(error: unknown): {
+    message: string;
+    shouldRedirect: boolean;
+} {
+    if (axios.isAxiosError<ApiErrorResponseDTO>(error)) {
+        const status = error.response?.status;
+        const rawMessage =
+            error.response?.data?.error ||
+            error.response?.data?.message ||
+            'Failed to leave room';
+        const normalized = rawMessage.toLowerCase();
+
+        if (normalized.includes('room owner cannot leave')) {
+            return {
+                message:
+                    'Room owner cannot leave this room. Owner must transfer or remove members using owner actions first.',
+                shouldRedirect: false,
+            };
+        }
+
+        if (normalized.includes('not a member')) {
+            return {
+                message: 'You are no longer in this room.',
+                shouldRedirect: true,
+            };
+        }
+
+        if (status === 401) {
+            return {
+                message: 'Unauthorized. Please sign in again.',
+                shouldRedirect: false,
+            };
+        }
+
+        return {
+            message: rawMessage,
+            shouldRedirect: false,
+        };
+    }
+
+    return {
+        message: 'Failed to leave room.',
+        shouldRedirect: false,
+    };
+}
+
 function normalizeInviteAccessLabel(access: RoomInviteCode['access']): string {
     if (access === 1 || access === 'edit') {
         return 'edit';
@@ -162,6 +235,14 @@ function mapScheduleDays(days: ScheduleDayResponseDTO[]): ScheduleDay[] {
     }));
 }
 
+function isScheduleReady(
+    suggestions: PlaceSuggestion[],
+    days: ScheduleDayResponseDTO[],
+): boolean {
+    if (suggestions.length > 0) return true;
+    return days.some((day) => day.schedules.length > 0);
+}
+
 function buildReplaceSchedulePayload(
     places: PlaceSuggestion[],
     schedule: ScheduleDay[],
@@ -202,17 +283,23 @@ function buildReplaceSchedulePayload(
 
 export default function CreateRoom() {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const location = useLocation();
     const { setOpen } = useSidebar();
     const { user } = useAuth();
-    const joinedRoleFromState =
-        (location.state as { joinedRole?: number } | null)?.joinedRole ?? null;
+    const routeState = (location.state as RoomRouteState | null) ?? null;
+    const joinedRoleFromState = routeState?.joinedRole ?? null;
+    const isFromCreateTrip = Boolean(routeState?.fromCreateTrip);
 
     const [places, setPlaces] = useState<PlaceSuggestion[]>([]);
     const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shareOpen, setShareOpen] = useState(false);
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+    const [leaveSubmitting, setLeaveSubmitting] = useState(false);
+    const [leaveError, setLeaveError] = useState<string | null>(null);
     const [currentRole, setCurrentRole] = useState<number | null>(
         joinedRoleFromState,
     );
@@ -234,6 +321,13 @@ export default function CreateRoom() {
     const [inviteHistoryLoaded, setInviteHistoryLoaded] = useState(false);
     const [saveStatus, setSaveStatus] = useState<AutoSaveStatus>('idle');
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [scheduleReadinessStatus, setScheduleReadinessStatus] =
+        useState<ScheduleReadinessStatus>('initial-loading');
+    const [scheduleReadinessMessage, setScheduleReadinessMessage] = useState<
+        string | null
+    >(null);
+    const [showLifestyleSubmittedNotice, setShowLifestyleSubmittedNotice] =
+        useState(Boolean(routeState?.lifestyleSubmitted));
 
     const latestPayloadRef = useRef<ReplaceTripScheduleRequestDTO>({
         items: [],
@@ -245,6 +339,16 @@ export default function CreateRoom() {
     const saveInFlightRef = useRef(false);
     const pollInFlightRef = useRef(false);
     const retryTimerRef = useRef<number | null>(null);
+    const nextPollAtRef = useRef(0);
+    const pollFailureStreakRef = useRef(0);
+    const lifestyleInvalidationEmittedRef = useRef(false);
+    const scheduleReadinessRef = useRef({
+        enabled: isFromCreateTrip,
+        startedAt:
+            typeof routeState?.createdAt === 'number'
+                ? routeState.createdAt
+                : Date.now(),
+    });
     const saveScheduleRef = useRef<
         (mode: 'autosave' | 'retry') => Promise<void>
     >(async () => { });
@@ -283,6 +387,17 @@ export default function CreateRoom() {
         initializedRef.current = false;
         setLoading(true);
         setError(null);
+        setScheduleReadinessStatus('initial-loading');
+        setScheduleReadinessMessage(null);
+        pollFailureStreakRef.current = 0;
+        nextPollAtRef.current = 0;
+        scheduleReadinessRef.current = {
+            enabled: isFromCreateTrip,
+            startedAt:
+                typeof routeState?.createdAt === 'number'
+                    ? routeState.createdAt
+                    : Date.now(),
+        };
 
         tripService
             .getSchedule(id)
@@ -291,13 +406,27 @@ export default function CreateRoom() {
                 initializedRef.current = true;
                 setSaveStatus('saved');
                 setSaveError(null);
+
+                const ready = isScheduleReady(suggestions, days);
+                if (scheduleReadinessRef.current.enabled && !ready) {
+                    setScheduleReadinessStatus('generating');
+                    setScheduleReadinessMessage(
+                        'สร้างทริปเรียบร้อยแล้ว ระบบกำลังเตรียม AI suggestions ให้คุณ',
+                    );
+                } else {
+                    scheduleReadinessRef.current.enabled = false;
+                    setScheduleReadinessStatus('ready');
+                    setScheduleReadinessMessage(null);
+                }
             })
             .catch((err) => {
                 console.error('[CreateRoom] Failed to load schedule:', err);
                 setError('ไม่สามารถโหลดข้อมูลตารางเดินทางได้');
+                setScheduleReadinessStatus('poll-error');
+                setScheduleReadinessMessage('ไม่สามารถโหลดตารางเดินทางได้');
             })
             .finally(() => setLoading(false));
-    }, [applyServerSnapshot, id]);
+    }, [applyServerSnapshot, id, isFromCreateTrip, routeState?.createdAt]);
 
     useEffect(() => {
         if (!id || !user?.id) return;
@@ -308,6 +437,21 @@ export default function CreateRoom() {
             .then((members) => {
                 if (!active) return;
                 const me = members.find((member) => member.user_id === user.id);
+                if (!me) {
+                    setCurrentRole(null);
+                    emitCacheInvalidation({
+                        key: 'user-rooms',
+                        reason: 'removed-from-room',
+                    });
+                    navigate('/your-trips', {
+                        replace: true,
+                        state: {
+                            removedFromRoom: true,
+                        },
+                    });
+                    return;
+                }
+
                 if (me?.role != null) {
                     setCurrentRole(me.role);
                 } else if (joinedRoleFromState == null) {
@@ -326,7 +470,7 @@ export default function CreateRoom() {
         return () => {
             active = false;
         };
-    }, [id, joinedRoleFromState, user?.id]);
+    }, [id, joinedRoleFromState, navigate, user?.id]);
 
     const isOwner = currentRole === 1;
     const canEdit = currentRole !== 3;
@@ -359,6 +503,11 @@ export default function CreateRoom() {
                 lastSyncedHashRef.current = latestHashRef.current;
                 setSaveStatus('saved');
                 setSaveError(null);
+                emitCacheInvalidation({
+                    key: 'trip-schedule',
+                    tripId: id,
+                    reason: 'replace-schedule',
+                });
                 if (retryTimerRef.current != null) {
                     window.clearTimeout(retryTimerRef.current);
                     retryTimerRef.current = null;
@@ -405,11 +554,14 @@ export default function CreateRoom() {
 
         const intervalId = window.setInterval(async () => {
             if (!initializedRef.current) return;
+            const now = Date.now();
+            if (now < nextPollAtRef.current) return;
             if (pollInFlightRef.current || saveInFlightRef.current) return;
 
             pollInFlightRef.current = true;
             try {
                 const { suggestions, days } = await tripService.getSchedule(id);
+                pollFailureStreakRef.current = 0;
                 const mappedSchedule = mapScheduleDays(days);
                 const remotePayload = buildReplaceSchedulePayload(
                     suggestions,
@@ -419,32 +571,74 @@ export default function CreateRoom() {
 
                 const hasUnsavedLocalChanges =
                     latestHashRef.current !== lastSyncedHashRef.current;
+                const ready = isScheduleReady(suggestions, days);
 
                 if (
-                    hasUnsavedLocalChanges ||
-                    remoteHash === latestHashRef.current
+                    !hasUnsavedLocalChanges &&
+                    remoteHash !== latestHashRef.current
                 ) {
-                    return;
+                    suppressAutosaveRef.current = true;
+                    setPlaces(suggestions);
+                    setSchedule(mappedSchedule);
+                    latestPayloadRef.current = remotePayload;
+                    latestHashRef.current = remoteHash;
+                    lastSyncedHashRef.current = remoteHash;
+                    setSaveStatus('saved');
+                    setSaveError(null);
+
+                    requestAnimationFrame(() => {
+                        suppressAutosaveRef.current = false;
+                    });
                 }
 
-                suppressAutosaveRef.current = true;
-                setPlaces(suggestions);
-                setSchedule(mappedSchedule);
-                latestPayloadRef.current = remotePayload;
-                latestHashRef.current = remoteHash;
-                lastSyncedHashRef.current = remoteHash;
-                setSaveStatus('saved');
-                setSaveError(null);
+                if (scheduleReadinessRef.current.enabled) {
+                    const elapsed =
+                        now - scheduleReadinessRef.current.startedAt;
 
-                requestAnimationFrame(() => {
-                    suppressAutosaveRef.current = false;
-                });
+                    if (ready) {
+                        scheduleReadinessRef.current.enabled = false;
+                        setScheduleReadinessStatus('ready');
+                        setScheduleReadinessMessage(null);
+                    } else if (elapsed >= POLLING_READINESS_TIMEOUT_MS) {
+                        scheduleReadinessRef.current.enabled = false;
+                        setScheduleReadinessStatus('timeout');
+                        setScheduleReadinessMessage(
+                            'AI suggestions ยังเตรียมไม่เสร็จ คุณใช้งานหน้านี้ต่อได้และกดรีเฟรชภายหลัง',
+                        );
+                    } else {
+                        setScheduleReadinessStatus('generating');
+                        setScheduleReadinessMessage(
+                            'Trip created, scheduling is preparing...',
+                        );
+                    }
+                }
+
+                nextPollAtRef.current =
+                    Date.now() +
+                    (scheduleReadinessRef.current.enabled
+                        ? POLLING_READINESS_INTERVAL_MS
+                        : POLLING_SYNC_INTERVAL_MS);
             } catch (err) {
                 console.error('[CreateRoom] Poll schedule failed:', err);
+
+                pollFailureStreakRef.current += 1;
+                const backoffMs = Math.min(
+                    POLLING_MAX_BACKOFF_MS,
+                    POLLING_READINESS_INTERVAL_MS *
+                    2 ** (pollFailureStreakRef.current - 1),
+                );
+                nextPollAtRef.current = Date.now() + backoffMs;
+
+                if (scheduleReadinessRef.current.enabled) {
+                    setScheduleReadinessStatus('poll-error');
+                    setScheduleReadinessMessage(
+                        'เชื่อมต่อไม่เสถียร ระบบกำลังลองดึง AI suggestions ใหม่',
+                    );
+                }
             } finally {
                 pollInFlightRef.current = false;
             }
-        }, POLLING_INTERVAL_MS);
+        }, POLLING_TICK_MS);
 
         return () => {
             window.clearInterval(intervalId);
@@ -459,6 +653,61 @@ export default function CreateRoom() {
         },
         [],
     );
+
+    useEffect(() => {
+        if (!id) return;
+
+        return subscribeCacheInvalidation(
+            (event: CacheInvalidationEventPayload) => {
+                if (event.key === 'trip-schedule' && event.tripId === id) {
+                    nextPollAtRef.current = 0;
+                }
+            },
+        );
+    }, [id]);
+
+    useEffect(() => {
+        if (!routeState?.lifestyleSubmitted) return;
+        setShowLifestyleSubmittedNotice(true);
+
+        if (shareRoomId && !lifestyleInvalidationEmittedRef.current) {
+            emitCacheInvalidation({
+                key: 'room-submissions',
+                roomId: shareRoomId,
+                reason: 'lifestyle-submit',
+            });
+            lifestyleInvalidationEmittedRef.current = true;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setShowLifestyleSubmittedNotice(false);
+        }, 8000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [routeState?.lifestyleSubmitted, shareRoomId]);
+
+    const handleRetrySchedulePolling = useCallback(() => {
+        if (!id) return;
+
+        scheduleReadinessRef.current = {
+            enabled: true,
+            startedAt: Date.now(),
+        };
+        pollFailureStreakRef.current = 0;
+        nextPollAtRef.current = 0;
+        setScheduleReadinessStatus('generating');
+        setScheduleReadinessMessage(
+            'กำลังขอ AI suggestions ใหม่ กรุณารอสักครู่',
+        );
+
+        emitCacheInvalidation({
+            key: 'trip-schedule',
+            tripId: id,
+            reason: 'manual-retry',
+        });
+    }, [id]);
 
     const autoSaveStatusLabel = useMemo(() => {
         if (!canEdit) return '';
@@ -491,6 +740,78 @@ export default function CreateRoom() {
         setInviteHistoryError(null);
         setInviteHistoryLoaded(false);
     }, []);
+
+    const handleOpenLeaveDialog = useCallback(() => {
+        setMoreMenuOpen(false);
+        setLeaveError(null);
+        setLeaveDialogOpen(true);
+    }, []);
+
+    const handleLeaveRoom = useCallback(async () => {
+        const leaveRoomId = shareRoomId || id;
+        if (!leaveRoomId) {
+            setLeaveError('Failed to leave room. Missing room id.');
+            return;
+        }
+
+        setLeaveSubmitting(true);
+        setLeaveError(null);
+
+        try {
+            await roomService.leaveRoom(leaveRoomId);
+
+            setLeaveDialogOpen(false);
+            setShareOpen(false);
+            setPlaces([]);
+            setSchedule([]);
+            setCurrentRole(null);
+
+            emitCacheInvalidation({
+                key: 'room-members',
+                roomId: leaveRoomId,
+                reason: 'remove-member',
+            });
+            emitCacheInvalidation({
+                key: 'room-submissions',
+                roomId: leaveRoomId,
+                reason: 'remove-member',
+            });
+            emitCacheInvalidation({
+                key: 'user-rooms',
+                reason: 'removed-from-room',
+            });
+
+            navigate('/your-trips', {
+                replace: true,
+                state: {
+                    leftRoom: true,
+                    message: 'You left the room.',
+                },
+            });
+        } catch (error) {
+            const { message, shouldRedirect } = getLeaveRoomErrorMessage(error);
+            setLeaveError(message);
+
+            if (shouldRedirect) {
+                setLeaveDialogOpen(false);
+                setPlaces([]);
+                setSchedule([]);
+                emitCacheInvalidation({
+                    key: 'user-rooms',
+                    reason: 'removed-from-room',
+                });
+                navigate('/your-trips', {
+                    replace: true,
+                    state: {
+                        removedFromRoom: true,
+                        message,
+                    },
+                });
+            }
+        } finally {
+            setLeaveSubmitting(false);
+        }
+    }, [id, navigate, shareRoomId]);
 
     const handleCreateInviteCode = useCallback(async () => {
         if (!shareRoomId) {
@@ -600,10 +921,24 @@ export default function CreateRoom() {
                         {autoSaveStatusLabel}
                     </p>
                 )}
-                <Button className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent">
-                    <MdMoreHoriz />
-                    More
-                </Button>
+                <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+                    <PopoverTrigger asChild>
+                        <Button className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent">
+                            <MdMoreHoriz />
+                            More
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-44 p-1">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={handleOpenLeaveDialog}
+                        >
+                            Leave room
+                        </Button>
+                    </PopoverContent>
+                </Popover>
                 {isOwner && (
                     <Button
                         className="h-auto rounded-md font-semibold bg-white text-indigo-600 border-2 border-indigo-600 hover:bg-indigo-50"
@@ -620,6 +955,37 @@ export default function CreateRoom() {
                     ห้องนี้เป็นโหมดดูอย่างเดียว คุณยังไม่สามารถแก้ไขแผนได้
                 </p>
             )}
+
+            {showLifestyleSubmittedNotice && (
+                <div className="mx-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    ส่ง Lifestyle สำเร็จแล้ว ข้อมูลสมาชิกถูกอัปเดตเรียบร้อย
+                </div>
+            )}
+
+            {scheduleReadinessStatus === 'generating' && (
+                <div className="mx-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                    {scheduleReadinessMessage ||
+                        'Trip created, scheduling is preparing...'}
+                </div>
+            )}
+
+            {(scheduleReadinessStatus === 'timeout' ||
+                scheduleReadinessStatus === 'poll-error') && (
+                    <div className="mx-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3">
+                        <span>
+                            {scheduleReadinessMessage ||
+                                'AI suggestions are still preparing.'}
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={handleRetrySchedulePolling}
+                        >
+                            รีเฟรชตาราง
+                        </Button>
+                    </div>
+                )}
 
             <Tabs defaultValue="planning" className="flex-1 min-h-0">
                 <TabsList
@@ -859,6 +1225,40 @@ export default function CreateRoom() {
                                     : 'สร้าง invite code'}
                             </Button>
                         )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Leave Room</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to leave this room? You will
+                            be removed from room members and your lifestyle
+                            submission in this room will be deleted.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {leaveError && (
+                        <p className="text-sm text-red-600">{leaveError}</p>
+                    )}
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setLeaveDialogOpen(false)}
+                            disabled={leaveSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleLeaveRoom}
+                            disabled={leaveSubmitting}
+                        >
+                            {leaveSubmitting ? 'Leaving...' : 'Leave room'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
