@@ -5,6 +5,7 @@ import type { Step1Data } from './Step1TripInfo';
 import Step2TravelVibe from './Step2TravelVibe';
 import Step3Priorities from './Step3Priorities';
 import { tripService } from '@/services/trip.service';
+import { emitCacheInvalidation } from '@/lib/cache-events';
 
 // ---------- toggle helper ----------
 
@@ -59,9 +60,11 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
     const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
     const [vibeForm, setVibeForm] = useState<VibeFormData>(INITIAL_VIBE);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     async function handleSubmit() {
         setIsSubmitting(true);
+        setSubmitError(null);
         try {
             const result = await tripService.createTrip({
                 room_name: step1Data?.tripName ?? '',
@@ -76,9 +79,28 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                 food_vibes: vibeForm.foodVibes,
                 additional_notes: vibeForm.extra,
             });
-            navigate(`/your-trips/${result.trip_id}`);
+
+            emitCacheInvalidation({
+                key: 'user-rooms',
+                reason: 'create-trip',
+            });
+            emitCacheInvalidation({
+                key: 'trip-schedule',
+                tripId: String(result.trip_id),
+                reason: 'create-trip',
+            });
+
+            navigate(`/your-trips/${result.trip_id}`, {
+                state: {
+                    fromCreateTrip: true,
+                    createdAt: Date.now(),
+                },
+            });
         } catch (err) {
             console.error('Error creating trip:', err);
+            setSubmitError(
+                'ไม่สามารถสร้างทริปได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+            );
             setIsSubmitting(false);
         }
     }
@@ -92,6 +114,12 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                         กำลังสร้างทริปของคุณ...
                     </p>
                 </div>
+            )}
+
+            {submitError && (
+                <p className="text-sm text-red-600 text-center" role="alert">
+                    {submitError}
+                </p>
             )}
             {/* Step indicator */}
             <div className="flex flex-col items-center gap-3">

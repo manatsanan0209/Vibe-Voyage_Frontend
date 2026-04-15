@@ -5,6 +5,7 @@ import Step2TravelVibe from '@/components/createTrip/Step2TravelVibe';
 import Step3Priorities from '@/components/createTrip/Step3Priorities';
 import { PreferredDestinations } from '@/components/createTrip/PreferredDestinations';
 import { useAuth } from '@/context/AuthContext';
+import { emitCacheInvalidation } from '@/lib/cache-events';
 import { roomService } from '@/services/room.service';
 import { useSubmitRoomLifestyle } from '@/hooks/useSubmitRoomLifestyle';
 
@@ -13,6 +14,7 @@ type LifestyleRouteState = {
     joinedRole?: number;
     fromRoom?: boolean;
     fromJoin?: boolean;
+    lifestyleSubmitted?: boolean;
 };
 
 type PreferredPlace = {
@@ -23,7 +25,9 @@ type PreferredPlace = {
 };
 
 function toggle(list: string[], id: string): string[] {
-    return list.includes(id) ? list.filter((value) => value !== id) : [...list, id];
+    return list.includes(id)
+        ? list.filter((value) => value !== id)
+        : [...list, id];
 }
 
 export default function JoinTripLifestyle() {
@@ -43,7 +47,9 @@ export default function JoinTripLifestyle() {
     >([]);
 
     const [roomId, setRoomId] = useState<string>(routeState?.roomId ?? '');
-    const [role, setRole] = useState<number | null>(routeState?.joinedRole ?? null);
+    const [role, setRole] = useState<number | null>(
+        routeState?.joinedRole ?? null,
+    );
     const [resolvingContext, setResolvingContext] = useState(true);
     const [contextError, setContextError] = useState<string | null>(null);
 
@@ -52,24 +58,32 @@ export default function JoinTripLifestyle() {
     const roomRoute = id ? `/your-trips/${id}` : '/your-trips';
 
     useEffect(() => {
+        const setResolvingAsync = (value: boolean) => {
+            queueMicrotask(() => {
+                setResolvingContext(value);
+            });
+        };
+
         if (!id) {
-            setResolvingContext(false);
-            setContextError('Trip id is missing.');
+            queueMicrotask(() => {
+                setResolvingContext(false);
+                setContextError('Trip id is missing.');
+            });
             return;
         }
 
         if (roomId && role != null) {
-            setResolvingContext(false);
+            setResolvingAsync(false);
             return;
         }
 
         if (!user?.id) {
-            setResolvingContext(false);
+            setResolvingAsync(false);
             return;
         }
 
         let active = true;
-        setResolvingContext(true);
+        setResolvingAsync(true);
 
         roomService
             .getMembers(id)
@@ -116,10 +130,11 @@ export default function JoinTripLifestyle() {
         }
     }, [id, navigate, resolvingContext, role, roomRoute]);
 
-    function goToRoom() {
+    function goToRoom(extraState?: Partial<LifestyleRouteState>) {
         navigate(roomRoute, {
             state: {
                 joinedRole: role ?? undefined,
+                ...extraState,
             },
         });
     }
@@ -139,14 +154,17 @@ export default function JoinTripLifestyle() {
 
     async function handleSubmitLifestyle() {
         if (!id || isLoading) return;
+        const resolvedRoomId = roomId || id;
 
         const payload = {
-            preferred_destinations: preferredDestinations.map((destination) => ({
-                destination_name: destination.label,
-                destination_id: destination.value,
-                latitude: destination.lat,
-                longitude: destination.lng,
-            })),
+            preferred_destinations: preferredDestinations.map(
+                (destination) => ({
+                    destination_name: destination.label,
+                    destination_id: destination.value,
+                    latitude: destination.lat,
+                    longitude: destination.lng,
+                }),
+            ),
             travel_vibes: travelVibes,
             voyage_priorities: voyagePriorities,
             food_vibes: foodVibes,
@@ -154,8 +172,15 @@ export default function JoinTripLifestyle() {
         };
 
         try {
-            await submit(roomId || id, payload);
-            goToRoom();
+            await submit(resolvedRoomId, payload);
+            emitCacheInvalidation({
+                key: 'room-submissions',
+                roomId: resolvedRoomId,
+                reason: 'lifestyle-submit',
+            });
+            goToRoom({
+                lifestyleSubmitted: true,
+            });
         } catch {
             // Error message is handled by hook state.
         }
@@ -164,7 +189,9 @@ export default function JoinTripLifestyle() {
     if (resolvingContext) {
         return (
             <div className="h-[calc(100dvh-6rem)] w-full flex items-center justify-center">
-                <p className="text-sm text-foreground/60">Preparing lifestyle form...</p>
+                <p className="text-sm text-foreground/60">
+                    Preparing lifestyle form...
+                </p>
             </div>
         );
     }
@@ -178,7 +205,8 @@ export default function JoinTripLifestyle() {
                             Your Lifestyle Preferences
                         </h1>
                         <p className="text-sm text-indigo-700 mt-1">
-                            Add your style now to personalize planning, or skip and do it later.
+                            Add your style now to personalize planning, or skip
+                            and do it later.
                         </p>
                     </div>
                     <Button variant="outline" onClick={handleSkip}>
@@ -226,7 +254,9 @@ export default function JoinTripLifestyle() {
                         />
 
                         {isLoading && (
-                            <p className="text-sm text-indigo-700">Submitting lifestyle...</p>
+                            <p className="text-sm text-indigo-700">
+                                Submitting lifestyle...
+                            </p>
                         )}
                     </div>
                 )}

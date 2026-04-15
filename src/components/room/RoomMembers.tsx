@@ -4,6 +4,10 @@ import { Crown, Trash2, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
+    emitCacheInvalidation,
+    subscribeCacheInvalidation,
+} from '@/lib/cache-events';
+import {
     roomService,
     type RoomMemberLifestyleSubmission,
 } from '@/services/room.service';
@@ -67,20 +71,55 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
     const [confirmMember, setConfirmMember] =
         useState<RoomMemberLifestyleSubmission | null>(null);
 
-    const fetchMembers = useCallback(() => {
+    const fetchMembers = useCallback(async () => {
         if (!roomId) return;
         setError(null);
-        roomService
-            .getMembersLifestyleSubmissions(roomId)
-            .then(setMembers)
-            .catch((err) => setError(getApiErrorMessage(err)))
-            .finally(() => setLoading(false));
-    }, [roomId]);
+        try {
+            const data =
+                await roomService.getMembersLifestyleSubmissions(roomId);
+            setMembers(data);
+
+            if (
+                user?.id &&
+                !data.some((member) => member.user_id === user.id)
+            ) {
+                setMembers([]);
+                emitCacheInvalidation({
+                    key: 'user-rooms',
+                    reason: 'removed-from-room',
+                });
+                navigate('/your-trips', {
+                    replace: true,
+                    state: {
+                        removedFromRoom: true,
+                    },
+                });
+            }
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate, roomId, user?.id]);
 
     useEffect(() => {
         setLoading(true);
-        fetchMembers();
+        void fetchMembers();
     }, [fetchMembers]);
+
+    useEffect(() => {
+        if (!roomId) return;
+
+        return subscribeCacheInvalidation((event) => {
+            if (
+                (event.key === 'room-members' ||
+                    event.key === 'room-submissions') &&
+                event.roomId === roomId
+            ) {
+                void fetchMembers();
+            }
+        });
+    }, [fetchMembers, roomId]);
 
     const isOwner = members.some(
         (m) => m.user_id === user?.id && isOwnerMember(m),
@@ -107,11 +146,44 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
     const handleRemove = async () => {
         if (!confirmMember) return;
         const room_member_id = confirmMember.room_member_id;
+        const removedUserId = confirmMember.user_id;
         setConfirmMember(null);
         setRemoving(room_member_id);
         try {
             await roomService.removeMember(roomId, room_member_id);
-            fetchMembers();
+            setMembers((prev) =>
+                prev.filter(
+                    (member) => member.room_member_id !== room_member_id,
+                ),
+            );
+
+            emitCacheInvalidation({
+                key: 'room-members',
+                roomId,
+                reason: 'remove-member',
+            });
+            emitCacheInvalidation({
+                key: 'room-submissions',
+                roomId,
+                reason: 'remove-member',
+            });
+
+            if (removedUserId === user?.id) {
+                setMembers([]);
+                emitCacheInvalidation({
+                    key: 'user-rooms',
+                    reason: 'removed-from-room',
+                });
+                navigate('/your-trips', {
+                    replace: true,
+                    state: {
+                        removedFromRoom: true,
+                    },
+                });
+                return;
+            }
+
+            void fetchMembers();
         } catch (error) {
             console.error('Failed to remove member:', error);
             setError(getApiErrorMessage(error));
@@ -228,7 +300,9 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
                                     variant="ghost"
                                     size="icon"
                                     className="size-8 text-foreground/30 hover:text-red-500 hover:bg-red-50 shrink-0"
-                                    disabled={removing === member.room_member_id}
+                                    disabled={
+                                        removing === member.room_member_id
+                                    }
                                     onClick={() => setConfirmMember(member)}
                                 >
                                     <Trash2 className="size-4" />
@@ -256,7 +330,8 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
                             <span className="font-semibold text-foreground">
                                 {confirmMember?.username}
                             </span>{' '}
-                            ออกจากห้องนี้ใช่ไหม? การกระทำนี้ไม่สามารถยกเลิกได้
+                            ออกจากห้องนี้ใช่ไหม? สมาชิกที่ถูกนำออกจะเสียข้อมูล
+                            Lifestyle ในห้องนี้และต้องส่งใหม่หากเข้าร่วมอีกครั้ง
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

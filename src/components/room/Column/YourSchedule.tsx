@@ -89,18 +89,19 @@ function SortableScheduleCard({
                         {item.type}
                     </span>
                 </div>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
-                    type="button"
-                    aria-label="Delete"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => onDelete(item.id)}
-                    disabled={readOnly}
-                >
-                    <ImBin />
-                </Button>
+                {!readOnly && (
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
+                        type="button"
+                        aria-label="Delete"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => onDelete(item.id)}
+                    >
+                        <ImBin />
+                    </Button>
+                )}
             </div>
         </div>
     );

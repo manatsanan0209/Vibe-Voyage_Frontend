@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import NewTripCard from '@/components/myTrips/NewTripCard';
 import TripCard, { type Collaborator } from '@/components/myTrips/TripCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
+import { subscribeCacheInvalidation } from '@/lib/cache-events';
 import { roomService, type UserRoomSummary } from '@/services/room.service';
 import type { ApiErrorResponseDTO } from '@/types/api';
 
@@ -58,40 +59,110 @@ function getApiErrorMessage(error: unknown): string {
     return 'ไม่สามารถโหลดทริปได้';
 }
 
+type MyTripsRouteState = {
+    leftRoom?: boolean;
+    removedFromRoom?: boolean;
+    message?: string;
+};
+
 export default function MyTrips() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const [rooms, setRooms] = useState<UserRoomSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<{
+        text: string;
+        tone: 'success' | 'info';
+    } | null>(null);
     const showNewTripCard = !loading && !error;
 
     useEffect(() => {
-        if (!user?.id) {
+        const routeState = (location.state as MyTripsRouteState | null) ??
+            null;
+        if (!routeState) return;
+
+        if (routeState.message) {
+            setNotice({
+                text: routeState.message,
+                tone: routeState.leftRoom ? 'success' : 'info',
+            });
+        } else if (routeState.leftRoom) {
+            setNotice({ text: 'You left the room.', tone: 'success' });
+        } else if (routeState.removedFromRoom) {
+            setNotice({
+                text: 'You are no longer in this room.',
+                tone: 'info',
+            });
+        } else {
             return;
         }
 
+        navigate(location.pathname, { replace: true, state: null });
+    }, [location.pathname, location.state, navigate]);
+
+    useEffect(() => {
+        if (!notice) return;
+
+        const timeoutId = window.setTimeout(() => {
+            setNotice(null);
+        }, 6000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [notice]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
         let active = true;
 
-        roomService
-            .getUserRooms(user.id)
-            .then((data) => {
-                if (!active) return;
-                setRooms(data);
-            })
-            .catch((err: unknown) => {
-                if (!active) return;
-                console.error('[MyTrips] Failed to fetch rooms:', err);
-                setError(getApiErrorMessage(err));
-            })
-            .finally(() => {
-                if (!active) return;
-                setLoading(false);
-            });
+        queueMicrotask(() => {
+            if (!active) return;
+            setLoading(true);
+            setError(null);
+
+            roomService
+                .getUserRooms(user.id)
+                .then((data) => {
+                    if (!active) return;
+                    setRooms(data);
+                })
+                .catch((err: unknown) => {
+                    if (!active) return;
+                    console.error('[MyTrips] Failed to fetch rooms:', err);
+                    setError(getApiErrorMessage(err));
+                })
+                .finally(() => {
+                    if (!active) return;
+                    setLoading(false);
+                });
+        });
 
         return () => {
             active = false;
         };
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        return subscribeCacheInvalidation((event) => {
+            if (event.key !== 'user-rooms') return;
+
+            roomService
+                .getUserRooms(user.id)
+                .then((data) => {
+                    setRooms(data);
+                    setError(null);
+                })
+                .catch((err: unknown) => {
+                    console.error('[MyTrips] Failed to refresh rooms:', err);
+                    setError(getApiErrorMessage(err));
+                });
+        });
     }, [user?.id]);
 
     return (
@@ -101,14 +172,25 @@ export default function MyTrips() {
                     My Trip
                 </h1>
 
+                {notice && (
+                    <div
+                        className={`mb-4 rounded-lg border px-4 py-3 text-sm ${notice.tone === 'success'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                            : 'border-amber-200 bg-amber-50 text-amber-800'
+                            }`}
+                    >
+                        {notice.text}
+                    </div>
+                )}
+
                 <div className="grid gap-10 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                     {showNewTripCard && <NewTripCard />}
 
                     {loading && (
                         <div
                             className={`rounded-lg border border-dashed border-indigo-200 bg-white p-4 sm:p-6 ${showNewTripCard
-                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
                                 }`}
                         >
                             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
@@ -128,8 +210,8 @@ export default function MyTrips() {
                     {!loading && error && (
                         <div
                             className={`rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-600 ${showNewTripCard
-                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
                                 }`}
                         >
                             {error}
@@ -139,8 +221,8 @@ export default function MyTrips() {
                     {!loading && !error && rooms.length === 0 && (
                         <div
                             className={`rounded-lg border border-dashed border-indigo-200 bg-white px-4 py-8 text-center text-sm text-indigo-700 ${showNewTripCard
-                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
                                 }`}
                         >
                             ยังไม่มีทริปในตอนนี้ ลองกดสร้างทริปใหม่ได้เลย
@@ -170,14 +252,12 @@ export default function MyTrips() {
                         ))}
                 </div>
 
-                {!loading &&
-                    !error &&
-                    rooms.some((room) => !room.trip_id) && (
-                        <p className="mt-4 text-xs text-amber-700">
-                            บางทริปยังไม่สามารถเข้าได้ชั่วคราว เนื่องจาก backend
-                            ยังไม่ส่ง trip_id ครบทุกรายการ
-                        </p>
-                    )}
+                {!loading && !error && rooms.some((room) => !room.trip_id) && (
+                    <p className="mt-4 text-xs text-amber-700">
+                        บางทริปยังไม่สามารถเข้าได้ชั่วคราว เนื่องจาก backend
+                        ยังไม่ส่ง trip_id ครบทุกรายการ
+                    </p>
+                )}
             </div>
         </main>
     );

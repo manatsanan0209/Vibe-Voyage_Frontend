@@ -77,6 +77,11 @@ export interface SubmitRoomLifestyleResponseDTO {
     message: string;
 }
 
+export interface LeaveRoomResponseDTO {
+    status: number;
+    message: string;
+}
+
 function authHeader() {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     return { Authorization: `Bearer ${token}` };
@@ -173,6 +178,16 @@ export const roomService = {
         const { data } = await axios.post<SubmitRoomLifestyleResponseDTO>(
             `${apiBaseUrl}/rooms/${roomId}/lifestyle`,
             payload,
+            {
+                headers: authHeader(),
+            },
+        );
+        return data;
+    },
+
+    async leaveRoom(roomId: string): Promise<LeaveRoomResponseDTO> {
+        const { data } = await axios.delete<LeaveRoomResponseDTO>(
+            `${apiBaseUrl}/rooms/${roomId}/leave`,
             {
                 headers: authHeader(),
             },
