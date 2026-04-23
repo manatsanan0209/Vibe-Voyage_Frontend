@@ -209,8 +209,9 @@ export const tripService = {
             };
         };
 
-        const suggestions: PlaceSuggestion[] = data.data.suggestions.map(
-            (item) => ({
+        const suggestions: PlaceSuggestion[] = data.data.suggestions
+            .filter((item) => item.place_id !== '')
+            .map((item) => ({
                 id: String(item.trip_schedule_id),
                 place_id: item.place_id,
                 name: item.place_name,
@@ -220,8 +221,7 @@ export const tripService = {
                         ? { lat: item.latitude, lng: item.longitude }
                         : { lat: 0, lng: 0 },
                 type: normalizeType(item.type),
-            }),
-        );
+            }));
 
         const startDate = new Date(data.data.start_date);
         if (isNaN(startDate.getTime())) {
@@ -238,6 +238,7 @@ export const tripService = {
                     day_number: day.day_number,
                     date: d.toISOString().split('T')[0],
                     schedules: [...day.items]
+                        .filter((item) => item.place_id !== '')
                         .sort((a, b) => a.sequence_order - b.sequence_order)
                         .map(mapItem),
                 };

@@ -1,7 +1,7 @@
 // ─── Room Planning ───────────────────────────────────────────────────────────
 
 /** Maximum number of places allowed per day in the schedule */
-export const MAX_SLOTS_PER_DAY = 4;
+export const MAX_SLOTS_PER_DAY = 7;
 
 /**
  * Fixed time windows for each slot index (0-based).

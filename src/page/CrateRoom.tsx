@@ -249,21 +249,24 @@ function buildReplaceSchedulePayload(
 ): ReplaceTripScheduleRequestDTO {
     const scheduledItems: ReplaceTripScheduleItemDTO[] = schedule.flatMap(
         (day) =>
-            day.items.map((item, index) => ({
-                day_number: day.day_number,
-                sequence_order: index + 1,
-                place_name: item.place_name,
-                place_id: item.place_id,
-                latitude: item.location?.lat ?? 0,
-                longitude: item.location?.lng ?? 0,
-                start_time: item.start_time ?? DEFAULT_UNSCHEDULED_TIME,
-                end_time: item.end_time ?? DEFAULT_UNSCHEDULED_TIME,
-                type: normalizeTypeForScheduleApi(item.type),
-            })),
+            day.items
+                .filter((item) => item.place_id !== '')
+                .map((item, index) => ({
+                    day_number: day.day_number,
+                    sequence_order: index + 1,
+                    place_name: item.place_name,
+                    place_id: item.place_id,
+                    latitude: item.location?.lat ?? 0,
+                    longitude: item.location?.lng ?? 0,
+                    start_time: item.start_time ?? DEFAULT_UNSCHEDULED_TIME,
+                    end_time: item.end_time ?? DEFAULT_UNSCHEDULED_TIME,
+                    type: normalizeTypeForScheduleApi(item.type),
+                })),
     );
 
-    const suggestionItems: ReplaceTripScheduleItemDTO[] = places.map(
-        (place) => ({
+    const suggestionItems: ReplaceTripScheduleItemDTO[] = places
+        .filter((place) => place.place_id !== '')
+        .map((place) => ({
             day_number: 0,
             sequence_order: 0,
             place_name: place.name,
@@ -273,8 +276,7 @@ function buildReplaceSchedulePayload(
             start_time: DEFAULT_UNSCHEDULED_TIME,
             end_time: DEFAULT_UNSCHEDULED_TIME,
             type: normalizeTypeForScheduleApi(place.type),
-        }),
-    );
+        }));
 
     return {
         items: [...suggestionItems, ...scheduledItems],
