@@ -68,7 +68,7 @@ function SquareCheckItem({
             <span
                 className={cn(
                     'flex shrink-0 size-4.25 rounded-md mt-0.5 bg-gray-200 border items-center justify-center transition-colors duration-150',
-                    checked ? 'border-violet-950' : 'border-transparent',
+                    checked ? 'border-primary' : 'border-transparent',
                 )}
             >
                 {checked && (
@@ -93,7 +93,7 @@ function SquareCheckItem({
                 <span className="text-base font-normal text-gray-900 leading-tight">
                     {label}
                 </span>
-                <span className="text-sm font-normal text-purple-400 leading-tight">
+                <span className="text-sm font-normal text-muted-foreground leading-tight">
                     {labelTH}
                 </span>
             </span>
@@ -123,7 +123,7 @@ function QuestionHeader({
                 </p>
             </div>
             {note && (
-                <span className="text-sm font-light text-pink-500 shrink-0 mt-0.5 whitespace-nowrap">
+                <span className="text-sm font-light text-accent-foreground shrink-0 mt-0.5 whitespace-nowrap">
                     {note}
                 </span>
             )}
@@ -211,7 +211,7 @@ export default function Step3Priorities({
                             มีอะไรอยากเพิ่มเติมเกี่ยวกับสไตล์การท่องเที่ยวของคุณไหม?
                         </p>
                     </div>
-                    <span className="text-sm font-light text-pink-500 shrink-0 mt-0.5 whitespace-nowrap">
+                    <span className="text-sm font-light text-accent-foreground shrink-0 mt-0.5 whitespace-nowrap">
                         * not required
                     </span>
                 </div>
@@ -220,7 +220,7 @@ export default function Step3Priorities({
                     onChange={(e) => onExtra(e.target.value)}
                     placeholder="Tell us more about your travel lifestyle for this voyage"
                     rows={2}
-                    className="w-full rounded-md border border-gray-400 bg-white px-3 py-2.5 text-sm text-black placeholder:text-gray-500 resize-none focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full rounded-md border border-gray-400 bg-white px-3 py-2.5 text-sm text-black placeholder:text-gray-500 resize-none focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
             </div>
 
@@ -237,7 +237,7 @@ export default function Step3Priorities({
                 </Button>
                 <Button
                     onClick={onSubmit}
-                    className="w-25 h-10 rounded-lg bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-25 h-10 rounded-lg bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Submit
                 </Button>

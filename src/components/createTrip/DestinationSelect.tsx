@@ -15,6 +15,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { useI18n } from '@/hooks/useI18n';
 
 type Destination = {
     value: string;
@@ -35,6 +36,7 @@ export function DestinationSelect({
     isLoading = false,
 }: DestinationSelectProps) {
     const [open, setOpen] = useState(false);
+    const { t } = useI18n();
 
     const selectedLabel = destinations.find((d) => d.value === value)?.label;
 
@@ -50,13 +52,13 @@ export function DestinationSelect({
                 >
                     {isLoading ? (
                         <span className="text-muted-foreground">
-                            Loading...
+                            {t('destinationSelect.loading')}
                         </span>
                     ) : selectedLabel ? (
                         selectedLabel
                     ) : (
                         <span className="text-muted-foreground">
-                            เช่น กรุงเทพมหานคร, เมืองเชียงใหม่, เชียงใหม่
+                            {t('destinationSelect.placeholderExample')}
                         </span>
                     )}
                     <ChevronsUpDown className="opacity-50" />
@@ -64,9 +66,14 @@ export function DestinationSelect({
             </PopoverTrigger>
             <PopoverContent>
                 <Command>
-                    <CommandInput placeholder="ค้นหาอำเภอ..." className="h-9" />
+                    <CommandInput
+                        placeholder={t('destinationSelect.searchPlaceholder')}
+                        className="h-9"
+                    />
                     <CommandList>
-                        <CommandEmpty>ไม่พบอำเภอที่ค้นหา</CommandEmpty>
+                        <CommandEmpty>
+                            {t('destinationSelect.empty')}
+                        </CommandEmpty>
                         <CommandGroup>
                             {destinations.map((d) => (
                                 <CommandItem

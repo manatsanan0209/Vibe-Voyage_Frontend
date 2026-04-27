@@ -106,9 +106,9 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
                 <img
                     src={map}
                     alt="Map"
-                    className="w-10 h-10 object-cover bg-neutral-200 rounded-full border-2 border-indigo-600 shadow-md shadow-gray-400"
+                    className="w-10 h-10 object-cover bg-muted rounded-full border-2 border-primary shadow-sm"
                 />
-                <p className="text-lg text-purple-950 font-semibold">
+                <p className="text-lg text-foreground font-semibold">
                     Trip Information
                 </p>
             </div>
@@ -122,7 +122,7 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
                     type="text"
                     value={tripName}
                     onChange={(e) => setTripName(e.target.value)}
-                    className="h-10 bg-white w-full"
+                    className="h-10 bg-background w-full"
                     placeholder="Your Trip Name"
                 />
 
@@ -195,7 +195,7 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
                             })),
                         });
                     }}
-                    className="w-25 h-10 rounded-lg bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-25 h-10 rounded-lg bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Next
                 </Button>

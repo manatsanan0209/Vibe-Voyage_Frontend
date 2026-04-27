@@ -103,8 +103,8 @@ function VibeCard({ id, label, labelTH, checked, onChange }: CardProps) {
             className={cn(
                 'flex items-center gap-3 w-full rounded-xl border-2 px-5 py-3 text-left transition-colors duration-150',
                 checked
-                    ? 'bg-violet-50 border-indigo-400'
-                    : 'bg-white border-gray-300 hover:border-indigo-400',
+                    ? 'bg-muted border-ring'
+                    : 'bg-white border-gray-300 hover:border-ring',
             )}
         >
             <span className="size-6.25 rounded-full bg-gray-300 shrink-0" />
@@ -112,7 +112,7 @@ function VibeCard({ id, label, labelTH, checked, onChange }: CardProps) {
                 <span className="text-sm font-normal text-gray-900 leading-tight truncate">
                     {label}
                 </span>
-                <span className="text-xs font-normal text-purple-400 leading-tight truncate">
+                <span className="text-xs font-normal text-muted-foreground leading-tight truncate">
                     {labelTH}
                 </span>
             </span>
@@ -133,19 +133,19 @@ function CircleCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
                 className={cn(
                     'flex shrink-0 size-3.75 rounded-full mt-0.5 items-center justify-center border-2 transition-all duration-150',
                     checked
-                        ? 'bg-white border-purple-500 shadow-[0px_2px_2px_0px_rgba(0,0,0,0.25)]'
+                        ? 'bg-white border-primary shadow-[0px_2px_2px_0px_rgba(0,0,0,0.25)]'
                         : 'bg-gray-300 border-transparent',
                 )}
             >
                 {checked && (
-                    <span className="size-2.25 rounded-full bg-indigo-600" />
+                    <span className="size-2.25 rounded-full bg-primary" />
                 )}
             </span>
             <span className="flex flex-col min-w-0">
                 <span className="text-sm font-normal text-gray-900 leading-tight">
                     {label}
                 </span>
-                <span className="text-xs font-normal text-purple-400 leading-tight">
+                <span className="text-xs font-normal text-muted-foreground leading-tight">
                     {labelTH}
                 </span>
             </span>
@@ -165,7 +165,7 @@ function SquareCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
             <span
                 className={cn(
                     'flex shrink-0 size-4.25 rounded-md mt-0.5 bg-gray-300 border items-center justify-center transition-colors duration-150',
-                    checked ? 'border-purple-800' : 'border-transparent',
+                    checked ? 'border-primary' : 'border-transparent',
                 )}
             >
                 {checked && (
@@ -190,7 +190,7 @@ function SquareCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
                 <span className="text-sm font-normal text-gray-900 leading-tight">
                     {label}
                 </span>
-                <span className="text-xs font-normal text-purple-400 leading-tight">
+                <span className="text-xs font-normal text-muted-foreground leading-tight">
                     {labelTH}
                 </span>
             </span>
@@ -273,7 +273,7 @@ export default function TravelVibeModal() {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button className="rounded-lg bg-indigo-600 font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-indigo-700 hover:shadow-none px-6 h-8.25">
+                <Button className="rounded-lg bg-primary font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-primary/90 hover:shadow-none px-6 h-8.25">
                     เริ่มทำแบบสอบถาม
                 </Button>
             </DialogTrigger>
@@ -283,7 +283,7 @@ export default function TravelVibeModal() {
                 {page === 2 && (
                     <button
                         onClick={() => setPage(1)}
-                        className="absolute left-5 top-5 flex items-center gap-1 text-purple-500 hover:text-indigo-600 transition-colors focus:outline-none"
+                        className="absolute left-5 top-5 flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
                         aria-label="Back to page 1"
                     >
                         <ArrowLeft className="size-4" />
@@ -368,7 +368,7 @@ function Page1({ vibes, onChange, onNext }: Page1Props) {
             <div className="flex justify-end pt-1">
                 <Button
                     onClick={onNext}
-                    className="w-29 h-7.5 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-29 h-7.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Next
                 </Button>
@@ -463,7 +463,7 @@ function Page2({
                     onChange={(e) => onExtra(e.target.value)}
                     placeholder="Tell us more about your travel lifestyle for this voyage"
                     rows={2}
-                    className="w-full rounded-md border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 resize-none focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full rounded-md border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 resize-none focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
             </div>
 
@@ -471,7 +471,7 @@ function Page2({
             <div className="flex justify-end pt-0">
                 <Button
                     onClick={onSubmit}
-                    className="w-29 h-7.5 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-29 h-7.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Submit
                 </Button>

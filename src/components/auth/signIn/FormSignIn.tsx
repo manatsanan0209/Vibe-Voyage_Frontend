@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import type { SigninRequestDTO } from '@/types/auth';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function FormSignIn() {
     const navigate = useNavigate();
     const { login } = useAuth();
+    const { t } = useI18n();
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [form, setForm] = useState<SigninRequestDTO>({
@@ -25,7 +27,7 @@ export default function FormSignIn() {
         setError('');
 
         if (!form.username || !form.password) {
-            setError('Please enter username and password.');
+            setError(t('authForm.signInMissing'));
             return;
         }
 
@@ -35,7 +37,7 @@ export default function FormSignIn() {
             await login(form, rememberMe);
             navigate('/');
         } catch (err) {
-            setError('Login failed. Please check your credentials.');
+            setError(t('authForm.signInFailed'));
             console.error('Login error:', err);
         } finally {
             setIsSubmitting(false);
@@ -50,11 +52,13 @@ export default function FormSignIn() {
             <FieldSet className="w-full">
                 <FieldGroup>
                     <Field className="w-full">
-                        <FieldLabel htmlFor="username">Username</FieldLabel>
+                        <FieldLabel htmlFor="username">
+                            {t('authForm.username')}
+                        </FieldLabel>
                         <Input
                             id="username"
                             type="text"
-                            placeholder="Enter your Username"
+                            placeholder={t('authForm.usernamePlaceholder')}
                             className="h-10"
                             value={form.username}
                             onChange={(event) =>
@@ -66,12 +70,14 @@ export default function FormSignIn() {
                         />
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="password">Password</FieldLabel>
+                        <FieldLabel htmlFor="password">
+                            {t('authForm.password')}
+                        </FieldLabel>
                         <div className="relative">
                             <Input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
-                                placeholder="Enter your Password"
+                                placeholder={t('authForm.passwordPlaceholder')}
                                 className="h-10 pr-10"
                                 value={form.password}
                                 onChange={(event) =>
@@ -86,8 +92,8 @@ export default function FormSignIn() {
                                 onClick={() => setShowPassword((prev) => !prev)}
                                 aria-label={
                                     showPassword
-                                        ? 'Hide password'
-                                        : 'Show password'
+                                        ? t('authForm.hidePassword')
+                                        : t('authForm.showPassword')
                                 }
                                 aria-pressed={showPassword}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -118,7 +124,7 @@ export default function FormSignIn() {
                                 htmlFor="remember-me"
                                 className="text-muted-foreground font-normal"
                             >
-                                Remember me
+                                {t('authForm.rememberMe')}
                             </FieldLabel>
                         </div>
                     </Field>
@@ -133,18 +139,18 @@ export default function FormSignIn() {
                 <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-10/12 h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
+                    className="w-10/12 h-auto rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                    {isSubmitting ? 'Signing In...' : 'Sign In'}
+                    {isSubmitting ? t('authForm.signingIn') : t('authForm.signIn')}
                 </Button>
             </div>
             <p className="mt-5 justify-center text-center font-normal text-muted-foreground text-sm">
-                Don't have an account?{' '}
+                {t('authForm.noAccount')}{' '}
                 <a
                     href="/signup"
-                    className="text-indigo-400 font-semibold hover:underline"
+                    className="text-muted-foreground font-semibold hover:underline"
                 >
-                    Sign Up
+                    {t('authForm.signUpLink')}
                 </a>
             </p>
         </form>

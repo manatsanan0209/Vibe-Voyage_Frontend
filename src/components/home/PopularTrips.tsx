@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/hooks/useI18n';
 
 interface PopularTrip {
     id: number;
@@ -86,10 +87,10 @@ function TripCard({ trip }: { trip: PopularTrip }) {
 
             {/* Rank + title row */}
             <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-bold leading-none text-indigo-400">
+                <span className="text-5xl font-bold leading-none text-ring">
                     {trip.rank}.
                 </span>
-                <span className="text-xl font-bold text-purple-800 leading-tight">
+                <span className="text-xl font-bold text-primary leading-tight">
                     {trip.title}
                 </span>
             </div>
@@ -113,11 +114,13 @@ function TripCard({ trip }: { trip: PopularTrip }) {
 }
 
 export default function PopularTrips() {
+    const { t } = useI18n();
+
     return (
         <div className="w-full flex flex-col gap-6">
             {/* Title */}
-            <h2 className="text-2xl font-bold text-purple-800">
-                Popular Trip
+            <h2 className="text-2xl font-bold text-primary">
+                {t('home.popularTitle')}
             </h2>
 
             {/* Trip cards */}
@@ -129,8 +132,8 @@ export default function PopularTrips() {
 
             {/* See more button */}
             <div className="flex justify-center">
-                <Button className="w-full sm:w-53.5 h-8.25 rounded-lg bg-indigo-600 font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-indigo-700 hover:shadow-none">
-                    See more
+                <Button className="w-full sm:w-53.5 h-8.25 rounded-lg bg-primary font-extrabold text-sm text-primary-foreground shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-primary/90 hover:shadow-none">
+                    {t('home.seeMore')}
                 </Button>
             </div>
         </div>

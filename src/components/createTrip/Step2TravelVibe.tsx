@@ -82,8 +82,8 @@ function VibeCard({ id, label, labelTH, image, checked, onChange }: CardProps) {
             className={cn(
                 'flex items-center gap-3 w-full rounded-xl border-2 px-5 py-3 text-left transition-colors duration-150',
                 checked
-                    ? 'bg-indigo-100 border-indigo-400'
-                    : 'bg-white border-gray-300 hover:border-indigo-400',
+                    ? 'bg-secondary border-ring'
+                    : 'bg-white border-gray-300 hover:border-ring',
             )}
         >
             <img
@@ -95,7 +95,7 @@ function VibeCard({ id, label, labelTH, image, checked, onChange }: CardProps) {
                 <span className="text-base font-semibold text-black leading-tight truncate">
                     {label}
                 </span>
-                <span className="text-sm text-indigo-500 font-light leading-tight truncate">
+                <span className="text-sm text-muted-foreground font-light leading-tight truncate">
                     {labelTH}
                 </span>
             </span>
@@ -125,7 +125,7 @@ function QuestionHeader({
                 </p>
             </div>
             {note && (
-                <span className="text-sm font-light text-pink-500 shrink-0 mt-0.5 whitespace-nowrap">
+                <span className="text-sm font-light text-accent-foreground shrink-0 mt-0.5 whitespace-nowrap">
                     {note}
                 </span>
             )}
@@ -184,7 +184,7 @@ export default function Step2TravelVibe({
                 </Button>
                 <Button
                     onClick={onNext}
-                    className="w-25 h-10 rounded-lg bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-25 h-10 rounded-lg bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Next
                 </Button>

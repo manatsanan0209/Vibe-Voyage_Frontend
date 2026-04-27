@@ -49,7 +49,7 @@ export default function MainModal({
             <DialogContent
                 className={`${mode === 'choice'
                         ? 'sm:max-w-md'
-                        : 'sm:max-w-88 px-4 py-5 [&>button]:text-pink-500'
+                        : 'sm:max-w-88 px-4 py-5 [&>button]:text-accent-foreground'
                     }`}
             >
                 {mode === 'choice' && (
@@ -65,7 +65,7 @@ export default function MainModal({
                     <div className="flex flex-col gap-4 my-3">
                         <Button
                             type="button"
-                            className="bg-indigo-600 hover:bg-indigo-700 mx-3"
+                            className="bg-primary hover:bg-primary/90 mx-3"
                             onClick={handleCreate}
                         >
                             Create
@@ -73,7 +73,7 @@ export default function MainModal({
                         <Button
                             type="button"
                             variant="outline"
-                            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 mx-3"
+                            className="border-border text-primary hover:bg-muted mx-3"
                             onClick={() => setMode('join')}
                         >
                             Join

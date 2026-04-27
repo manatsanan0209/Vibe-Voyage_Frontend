@@ -9,31 +9,44 @@ import { useAuth } from '@/context/AuthContext';
 import { subscribeCacheInvalidation } from '@/lib/cache-events';
 import { roomService, type UserRoomSummary } from '@/services/room.service';
 import type { ApiErrorResponseDTO } from '@/types/api';
+import { useI18n } from '@/hooks/useI18n';
+import type { SupportedLanguage } from '@/lib/i18n';
 
 const FALLBACK_TRIP_IMAGE = 'https://picsum.photos/seed/mytrip/366/240';
 
-function formatJoinedAgo(joinedAt: string): string {
+function formatJoinedAgoLocalized(
+    joinedAt: string,
+    lang: SupportedLanguage,
+): string {
     const joinedDate = new Date(joinedAt);
-    if (isNaN(joinedDate.getTime())) return 'Joined recently';
+    const recently =
+        lang === 'th' ? 'เข้าร่วมเมื่อไม่นานมานี้' : 'Joined recently';
+    if (isNaN(joinedDate.getTime())) return recently;
 
     const diffMs = Date.now() - joinedDate.getTime();
-    if (diffMs < 0) return 'Joined recently';
+    if (diffMs < 0) return recently;
 
     const hourMs = 60 * 60 * 1000;
     const dayMs = 24 * hourMs;
 
     if (diffMs < hourMs) {
         const minutes = Math.max(1, Math.floor(diffMs / (60 * 1000)));
-        return `Joined ${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        return lang === 'th'
+            ? `เข้าร่วมเมื่อ ${minutes} นาทีที่แล้ว`
+            : `Joined ${minutes} minute${minutes > 1 ? 's' : ''} ago`;
     }
 
     if (diffMs < dayMs) {
         const hours = Math.floor(diffMs / hourMs);
-        return `Joined ${hours} hour${hours > 1 ? 's' : ''} ago`;
+        return lang === 'th'
+            ? `เข้าร่วมเมื่อ ${hours} ชั่วโมงที่แล้ว`
+            : `Joined ${hours} hour${hours > 1 ? 's' : ''} ago`;
     }
 
     const days = Math.floor(diffMs / dayMs);
-    return `Joined ${days} day${days > 1 ? 's' : ''} ago`;
+    return lang === 'th'
+        ? `เข้าร่วมเมื่อ ${days} วันที่แล้ว`
+        : `Joined ${days} day${days > 1 ? 's' : ''} ago`;
 }
 
 function buildCollaborators(
@@ -48,15 +61,17 @@ function buildCollaborators(
     }));
 }
 
-function getApiErrorMessage(error: unknown): string {
+function getApiErrorMessage(error: unknown, lang: SupportedLanguage): string {
+    const fallback =
+        lang === 'th' ? 'ไม่สามารถโหลดทริปได้' : 'Failed to load trips';
     if (axios.isAxiosError<ApiErrorResponseDTO>(error)) {
         return (
             error.response?.data?.error ||
             error.response?.data?.message ||
-            'ไม่สามารถโหลดทริปได้'
+            fallback
         );
     }
-    return 'ไม่สามารถโหลดทริปได้';
+    return fallback;
 }
 
 type MyTripsRouteState = {
@@ -65,54 +80,45 @@ type MyTripsRouteState = {
     message?: string;
 };
 
+type Notice = {
+    text: string;
+    tone: 'success' | 'info';
+};
+
 export default function MyTrips() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const { t, lang } = useI18n();
     const [rooms, setRooms] = useState<UserRoomSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<{
-        text: string;
-        tone: 'success' | 'info';
-    } | null>(null);
+    const routeState = (location.state as MyTripsRouteState | null) ?? null;
+    const notice: Notice | null = routeState
+        ? routeState.message
+            ? {
+                  text: routeState.message,
+                  tone: routeState.leftRoom ? 'success' : 'info',
+              }
+            : routeState.leftRoom
+              ? { text: t('room.leftRoom'), tone: 'success' }
+              : routeState.removedFromRoom
+                ? { text: t('room.notMember'), tone: 'info' }
+                : null
+        : null;
     const showNewTripCard = !loading && !error;
-
-    useEffect(() => {
-        const routeState = (location.state as MyTripsRouteState | null) ??
-            null;
-        if (!routeState) return;
-
-        if (routeState.message) {
-            setNotice({
-                text: routeState.message,
-                tone: routeState.leftRoom ? 'success' : 'info',
-            });
-        } else if (routeState.leftRoom) {
-            setNotice({ text: 'You left the room.', tone: 'success' });
-        } else if (routeState.removedFromRoom) {
-            setNotice({
-                text: 'You are no longer in this room.',
-                tone: 'info',
-            });
-        } else {
-            return;
-        }
-
-        navigate(location.pathname, { replace: true, state: null });
-    }, [location.pathname, location.state, navigate]);
 
     useEffect(() => {
         if (!notice) return;
 
         const timeoutId = window.setTimeout(() => {
-            setNotice(null);
+            navigate(location.pathname, { replace: true, state: null });
         }, 6000);
 
         return () => {
             window.clearTimeout(timeoutId);
         };
-    }, [notice]);
+    }, [location.pathname, navigate, notice]);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -133,7 +139,7 @@ export default function MyTrips() {
                 .catch((err: unknown) => {
                     if (!active) return;
                     console.error('[MyTrips] Failed to fetch rooms:', err);
-                    setError(getApiErrorMessage(err));
+                    setError(getApiErrorMessage(err, lang));
                 })
                 .finally(() => {
                     if (!active) return;
@@ -160,24 +166,25 @@ export default function MyTrips() {
                 })
                 .catch((err: unknown) => {
                     console.error('[MyTrips] Failed to refresh rooms:', err);
-                    setError(getApiErrorMessage(err));
+                    setError(getApiErrorMessage(err, lang));
                 });
         });
-    }, [user?.id]);
+    }, [lang, user?.id]);
 
     return (
         <main className="flex flex-col gap-6 sm:gap-8 px-4 sm:px-8 pb-12">
-            <div className="w-full rounded-4xl bg-violet-50 px-4 sm:px-8 py-6 sm:py-8">
-                <h1 className="text-2xl font-bold text-indigo-950 mb-6">
-                    My Trip
+            <div className="w-full rounded-4xl bg-muted px-4 sm:px-8 py-6 sm:py-8">
+                <h1 className="text-2xl font-bold text-primary mb-6">
+                    {t('myTrips.title')}
                 </h1>
 
                 {notice && (
                     <div
-                        className={`mb-4 rounded-lg border px-4 py-3 text-sm ${notice.tone === 'success'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                            : 'border-amber-200 bg-amber-50 text-amber-800'
-                            }`}
+                        className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+                            notice.tone === 'success'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                : 'border-amber-200 bg-amber-50 text-amber-800'
+                        }`}
                     >
                         {notice.text}
                     </div>
@@ -188,20 +195,21 @@ export default function MyTrips() {
 
                     {loading && (
                         <div
-                            className={`rounded-lg border border-dashed border-indigo-200 bg-white p-4 sm:p-6 ${showNewTripCard
-                                ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
-                                }`}
+                            className={`rounded-lg border border-dashed border-border bg-white p-4 sm:p-6 ${
+                                showNewTripCard
+                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                            }`}
                         >
                             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
                                 <Skeleton className="h-52 w-full rounded-xl" />
                                 <Skeleton className="h-52 w-full rounded-xl" />
                                 <Skeleton className="h-52 w-full rounded-xl" />
                             </div>
-                            <div className="mt-5 flex items-center justify-center gap-2 text-indigo-700">
+                            <div className="mt-5 flex items-center justify-center gap-2 text-primary">
                                 <Loader2 className="size-4 animate-spin" />
                                 <span className="text-sm font-medium">
-                                    กำลังโหลดทริปของคุณ...
+                                    {t('myTrips.loadingYourTrips')}
                                 </span>
                             </div>
                         </div>
@@ -209,10 +217,11 @@ export default function MyTrips() {
 
                     {!loading && error && (
                         <div
-                            className={`rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-600 ${showNewTripCard
-                                ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
-                                }`}
+                            className={`rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-600 ${
+                                showNewTripCard
+                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                            }`}
                         >
                             {error}
                         </div>
@@ -220,12 +229,13 @@ export default function MyTrips() {
 
                     {!loading && !error && rooms.length === 0 && (
                         <div
-                            className={`rounded-lg border border-dashed border-indigo-200 bg-white px-4 py-8 text-center text-sm text-indigo-700 ${showNewTripCard
-                                ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
-                                }`}
+                            className={`rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-primary ${
+                                showNewTripCard
+                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                            }`}
                         >
-                            ยังไม่มีทริปในตอนนี้ ลองกดสร้างทริปใหม่ได้เลย
+                            {t('myTrips.empty')}
                         </div>
                     )}
 
@@ -238,7 +248,10 @@ export default function MyTrips() {
                                 imageUrl={
                                     room.room_image || FALLBACK_TRIP_IMAGE
                                 }
-                                lastEdited={formatJoinedAgo(room.joined_at)}
+                                lastEdited={formatJoinedAgoLocalized(
+                                    room.joined_at,
+                                    lang,
+                                )}
                                 collaborators={buildCollaborators(
                                     room.room_id,
                                     room.members_count,
@@ -254,8 +267,7 @@ export default function MyTrips() {
 
                 {!loading && !error && rooms.some((room) => !room.trip_id) && (
                     <p className="mt-4 text-xs text-amber-700">
-                        บางทริปยังไม่สามารถเข้าได้ชั่วคราว เนื่องจาก backend
-                        ยังไม่ส่ง trip_id ครบทุกรายการ
+                        {t('myTrips.backendMissingTripId')}
                     </p>
                 )}
             </div>

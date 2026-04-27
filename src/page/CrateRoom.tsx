@@ -29,6 +29,7 @@ import {
 import RoomMembers from '@/components/room/RoomMembers';
 import RoomPlanning from '@/components/room/RoomPlanning';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
 import {
     emitCacheInvalidation,
     subscribeCacheInvalidation,
@@ -49,6 +50,7 @@ import {
 import type { ApiErrorResponseDTO } from '@/types/api';
 import type { PlaceSuggestion, PlaceType } from '@/types/place';
 import type { ScheduleDay } from '@/types/schedule';
+import { useI18n } from '@/hooks/useI18n';
 
 const AUTOSAVE_DEBOUNCE_MS = 1000;
 const AUTOSAVE_RETRY_MS = 4000;
@@ -73,17 +75,6 @@ type RoomRouteState = {
     createdAt?: number;
     lifestyleSubmitted?: boolean;
 };
-
-function formatDateLabel(dateStr: string): string {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
-}
 
 type InviteExpireChoice = '12h' | '1d' | '3d' | '7d' | 'unlimited';
 
@@ -135,7 +126,10 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
     return fallback;
 }
 
-function getLeaveRoomErrorMessage(error: unknown): {
+function getLeaveRoomErrorMessage(
+    error: unknown,
+    t: (key: string) => string,
+): {
     message: string;
     shouldRedirect: boolean;
 } {
@@ -144,27 +138,26 @@ function getLeaveRoomErrorMessage(error: unknown): {
         const rawMessage =
             error.response?.data?.error ||
             error.response?.data?.message ||
-            'Failed to leave room';
+            t('room.failedToLeave');
         const normalized = rawMessage.toLowerCase();
 
         if (normalized.includes('room owner cannot leave')) {
             return {
-                message:
-                    'Room owner cannot leave this room. Owner must transfer or remove members using owner actions first.',
+                message: t('room.ownerCannotLeave'),
                 shouldRedirect: false,
             };
         }
 
         if (normalized.includes('not a member')) {
             return {
-                message: 'You are no longer in this room.',
+                message: t('room.notMember'),
                 shouldRedirect: true,
             };
         }
 
         if (status === 401) {
             return {
-                message: 'Unauthorized. Please sign in again.',
+                message: t('room.unauthorized'),
                 shouldRedirect: false,
             };
         }
@@ -176,7 +169,7 @@ function getLeaveRoomErrorMessage(error: unknown): {
     }
 
     return {
-        message: 'Failed to leave room.',
+        message: t('room.failedToLeave'),
         shouldRedirect: false,
     };
 }
@@ -189,19 +182,6 @@ function normalizeInviteAccessLabel(access: RoomInviteCode['access']): string {
         return 'view';
     }
     return 'unknown';
-}
-
-function formatInviteDateTime(value?: string): string {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return value;
-    return date.toLocaleString('th-TH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
 }
 
 function resolveRoomIdFromMembers(
@@ -230,7 +210,8 @@ function mapScheduleDays(days: ScheduleDayResponseDTO[]): ScheduleDay[] {
         id: `day-${day.day_number}`,
         day_number: day.day_number,
         date: day.date,
-        dateLabel: formatDateLabel(day.date),
+        // Render-time formatting uses SettingsContext (global app preference)
+        dateLabel: day.date,
         items: day.schedules,
     }));
 }
@@ -291,9 +272,19 @@ export default function CreateRoom() {
     const location = useLocation();
     const { setOpen } = useSidebar();
     const { user } = useAuth();
+    const { formatDate, formatTime } = useSettings();
+    const { t } = useI18n();
     const routeState = (location.state as RoomRouteState | null) ?? null;
     const joinedRoleFromState = routeState?.joinedRole ?? null;
     const isFromCreateTrip = Boolean(routeState?.fromCreateTrip);
+
+    const formatInviteDateTime = useCallback(
+        (value?: string): string => {
+            if (!value) return '-';
+            return `${formatDate(value)} ${formatTime(value)}`;
+        },
+        [formatDate, formatTime],
+    );
 
     const [places, setPlaces] = useState<PlaceSuggestion[]>([]);
     const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
@@ -355,7 +346,7 @@ export default function CreateRoom() {
     });
     const saveScheduleRef = useRef<
         (mode: 'autosave' | 'retry') => Promise<void>
-    >(async () => { });
+    >(async () => {});
 
     useEffect(() => {
         setOpen(false);
@@ -629,7 +620,7 @@ export default function CreateRoom() {
                 const backoffMs = Math.min(
                     POLLING_MAX_BACKOFF_MS,
                     POLLING_READINESS_INTERVAL_MS *
-                    2 ** (pollFailureStreakRef.current - 1),
+                        2 ** (pollFailureStreakRef.current - 1),
                 );
                 nextPollAtRef.current = Date.now() + backoffMs;
 
@@ -789,11 +780,13 @@ export default function CreateRoom() {
                 replace: true,
                 state: {
                     leftRoom: true,
-                    message: 'You left the room.',
                 },
             });
         } catch (error) {
-            const { message, shouldRedirect } = getLeaveRoomErrorMessage(error);
+            const { message, shouldRedirect } = getLeaveRoomErrorMessage(
+                error,
+                t,
+            );
             setLeaveError(message);
 
             if (shouldRedirect) {
@@ -808,7 +801,6 @@ export default function CreateRoom() {
                     replace: true,
                     state: {
                         removedFromRoom: true,
-                        message,
                     },
                 });
             }
@@ -927,7 +919,7 @@ export default function CreateRoom() {
                 )}
                 <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
                     <PopoverTrigger asChild>
-                        <Button className="h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-transparent">
+                        <Button className="h-auto rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-transparent">
                             <MdMoreHoriz />
                             More
                         </Button>
@@ -945,7 +937,7 @@ export default function CreateRoom() {
                 </Popover>
                 {isOwner && (
                     <Button
-                        className="h-auto rounded-md font-semibold bg-white text-indigo-600 border-2 border-indigo-600 hover:bg-indigo-50"
+                        className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
                         onClick={() => handleShareOpenChange(true)}
                     >
                         <MdIosShare />
@@ -975,21 +967,21 @@ export default function CreateRoom() {
 
             {(scheduleReadinessStatus === 'timeout' ||
                 scheduleReadinessStatus === 'poll-error') && (
-                    <div className="mx-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3">
-                        <span>
-                            {scheduleReadinessMessage ||
-                                'AI suggestions are still preparing.'}
-                        </span>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={handleRetrySchedulePolling}
-                        >
-                            รีเฟรชตาราง
-                        </Button>
-                    </div>
-                )}
+                <div className="mx-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3">
+                    <span>
+                        {scheduleReadinessMessage ||
+                            'AI suggestions are still preparing.'}
+                    </span>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRetrySchedulePolling}
+                    >
+                        รีเฟรชตาราง
+                    </Button>
+                </div>
+            )}
 
             <Tabs defaultValue="planning" className="flex-1 min-h-0">
                 <TabsList
@@ -1144,9 +1136,9 @@ export default function CreateRoom() {
                                 </p>
                             )}
 
-                            <div className="space-y-2 rounded-md border border-indigo-100 bg-indigo-50/40 p-3">
+                            <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
                                 <div className="flex items-center justify-between gap-2">
-                                    <p className="text-sm font-semibold text-indigo-900">
+                                    <p className="text-sm font-semibold text-primary">
                                         Invite code history
                                     </p>
                                     <Button
@@ -1169,7 +1161,7 @@ export default function CreateRoom() {
                                 {inviteHistoryLoaded &&
                                     !inviteHistoryLoading &&
                                     inviteHistory.length === 0 && (
-                                        <p className="text-xs text-indigo-700">
+                                        <p className="text-xs text-muted-foreground">
                                             ยังไม่มีประวัติ invite code
                                         </p>
                                     )}
@@ -1179,12 +1171,12 @@ export default function CreateRoom() {
                                         {inviteHistory.map((item) => (
                                             <div
                                                 key={item.room_invite_id}
-                                                className="rounded-md border border-indigo-100 bg-white p-2"
+                                                className="rounded-md border border-border bg-white p-2"
                                             >
-                                                <p className="font-semibold tracking-wide text-indigo-900">
+                                                <p className="font-semibold tracking-wide text-primary">
                                                     {item.invite_code}
                                                 </p>
-                                                <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-indigo-700">
+                                                <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                                                     <p>
                                                         Access:{' '}
                                                         {normalizeInviteAccessLabel(

@@ -96,16 +96,16 @@ function VibeCard({ id, label, labelTH, checked, onChange }: CardProps) {
             className={cn(
                 'flex items-center gap-3 w-full rounded-xl border-2 px-5 py-3 text-left transition-colors duration-150',
                 checked
-                    ? 'bg-violet-50 border-indigo-400'
-                    : 'bg-white border-gray-300 hover:border-indigo-400',
+                    ? 'bg-muted border-primary/40'
+                    : 'bg-card border-border hover:border-ring',
             )}
         >
-            <span className="size-6.25 rounded-full bg-gray-300 shrink-0" />
+            <span className="size-6.25 rounded-full bg-muted shrink-0" />
             <span className="flex flex-col min-w-0">
-                <span className="text-sm font-normal text-gray-900 leading-tight truncate">
+                <span className="text-sm font-normal text-foreground leading-tight truncate">
                     {label}
                 </span>
-                <span className="text-xs font-normal text-purple-400 leading-tight truncate">
+                <span className="text-xs font-normal text-muted-foreground leading-tight truncate">
                     {labelTH}
                 </span>
             </span>
@@ -126,19 +126,19 @@ function CircleCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
                 className={cn(
                     'flex shrink-0 size-3.75 rounded-full mt-0.5 items-center justify-center border-2 transition-all duration-150',
                     checked
-                        ? 'bg-white border-purple-500 shadow-[0px_2px_2px_0px_rgba(0,0,0,0.25)]'
-                        : 'bg-gray-300 border-transparent',
+                        ? 'bg-card border-primary shadow-sm'
+                        : 'bg-muted border-transparent',
                 )}
             >
                 {checked && (
-                    <span className="size-2.25 rounded-full bg-indigo-600" />
+                    <span className="size-2.25 rounded-full bg-primary" />
                 )}
             </span>
             <span className="flex flex-col min-w-0">
-                <span className="text-sm font-normal text-gray-900 leading-tight">
+                <span className="text-sm font-normal text-foreground leading-tight">
                     {label}
                 </span>
-                <span className="text-xs font-normal text-purple-400 leading-tight">
+                <span className="text-xs font-normal text-muted-foreground leading-tight">
                     {labelTH}
                 </span>
             </span>
@@ -157,8 +157,10 @@ function SquareCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
         >
             <span
                 className={cn(
-                    'flex shrink-0 size-4.25 rounded-md mt-0.5 bg-gray-300 border items-center justify-center transition-colors duration-150',
-                    checked ? 'border-purple-800' : 'border-transparent',
+                    'flex shrink-0 size-4.25 rounded-md mt-0.5 bg-muted border items-center justify-center transition-colors duration-150',
+                    checked
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground',
                 )}
             >
                 {checked && (
@@ -171,7 +173,7 @@ function SquareCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
                     >
                         <path
                             d="M1 4L3.5 6.5L9 1"
-                            stroke="#4C3D79"
+                            stroke="currentColor"
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -180,10 +182,10 @@ function SquareCheckItem({ id, label, labelTH, checked, onChange }: CardProps) {
                 )}
             </span>
             <span className="flex flex-col min-w-0">
-                <span className="text-sm font-normal text-gray-900 leading-tight">
+                <span className="text-sm font-normal text-foreground leading-tight">
                     {label}
                 </span>
-                <span className="text-xs font-normal text-purple-400 leading-tight">
+                <span className="text-xs font-normal text-muted-foreground leading-tight">
                     {labelTH}
                 </span>
             </span>
@@ -205,15 +207,15 @@ function QuestionHeader({
     return (
         <div className="flex items-start justify-between gap-4">
             <div>
-                <p className="text-sm font-semibold text-gray-900 leading-tight">
+                <p className="text-sm font-semibold text-foreground leading-tight">
                     {question}
                 </p>
-                <p className="text-xs font-light text-gray-500 mt-0.5">
+                <p className="text-xs font-light text-muted-foreground mt-0.5">
                     {questionTH}
                 </p>
             </div>
             {note && (
-                <span className="text-xs font-light text-red-500 shrink-0 mt-0.5 whitespace-nowrap">
+                <span className="text-xs font-light text-muted-foreground shrink-0 mt-0.5 whitespace-nowrap">
                     {note}
                 </span>
             )}
@@ -268,7 +270,7 @@ export default function TravelVibeStep({
     return (
         <div className="w-full flex flex-col gap-6">
             {/* Title */}
-            <p className="text-center text-xl font-semibold text-gray-900">
+            <p className="text-center text-xl font-semibold text-foreground">
                 Vibe Voyage — Your Travel Style
             </p>
 
@@ -345,14 +347,14 @@ function VibePage1({ vibes, onChange, onBack, onNext }: VibePage1Props) {
                 <button
                     type="button"
                     onClick={onBack}
-                    className="flex items-center gap-1 text-purple-500 hover:text-indigo-600 transition-colors focus:outline-none"
+                    className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors focus:outline-none"
                 >
                     <ArrowLeft className="size-4" />
                     <span className="text-xs font-medium">Back</span>
                 </button>
                 <Button
                     onClick={onNext}
-                    className="w-29 h-7.5 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-29 h-7.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Next
                 </Button>
@@ -432,14 +434,14 @@ function VibePage2({
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <p className="text-sm font-semibold text-gray-900 leading-tight">
+                        <p className="text-sm font-semibold text-foreground leading-tight">
                             Anything to add about your travel lifestyle?
                         </p>
-                        <p className="text-xs font-light text-gray-500 mt-0.5">
+                        <p className="text-xs font-light text-muted-foreground mt-0.5">
                             มีอะไรอยากเพิ่มเติมเกี่ยวกับสไตล์การท่องเที่ยวของคุณไหม?
                         </p>
                     </div>
-                    <span className="text-xs font-light text-red-500 shrink-0 mt-0.5 whitespace-nowrap">
+                    <span className="text-xs font-light text-muted-foreground shrink-0 mt-0.5 whitespace-nowrap">
                         * not required
                     </span>
                 </div>
@@ -448,7 +450,7 @@ function VibePage2({
                     onChange={(e) => onExtra(e.target.value)}
                     placeholder="Tell us more about your travel lifestyle for this voyage"
                     rows={2}
-                    className="w-full rounded-md border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 resize-none focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
             </div>
 
@@ -457,14 +459,14 @@ function VibePage2({
                 <button
                     type="button"
                     onClick={onBack}
-                    className="flex items-center gap-1 text-purple-500 hover:text-indigo-600 transition-colors focus:outline-none"
+                    className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors focus:outline-none"
                 >
                     <ArrowLeft className="size-4" />
                     <span className="text-xs font-medium">Back</span>
                 </button>
                 <Button
                     onClick={onSubmit}
-                    className="w-29 h-7.5 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 shadow-none"
+                    className="w-29 h-7.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
                 >
                     Submit
                 </Button>

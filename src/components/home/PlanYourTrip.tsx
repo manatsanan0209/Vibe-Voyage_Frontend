@@ -4,6 +4,7 @@ import { MapPin, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DestinationSelect } from '@/components/createTrip/DestinationSelect';
 import { DatePickerInput } from '@/components/createTrip/DatePickerInput';
+import { useI18n } from '@/hooks/useI18n';
 import type { ApiResponseDTO } from '@/types/api';
 import type { District } from '@/types/place';
 
@@ -14,6 +15,7 @@ type Destination = {
 
 export default function PlanYourTrip() {
     const navigate = useNavigate();
+    const { t } = useI18n();
     const [destination, setDestination] = useState('');
     const [startDate, setStartDate] = useState<Date | undefined>(undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -79,13 +81,13 @@ export default function PlanYourTrip() {
     };
 
     return (
-        <div className="w-full rounded-4xl bg-violet-50 px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center gap-3">
+        <div className="w-full rounded-4xl bg-muted px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center gap-3">
             {/* Heading */}
-            <h2 className="text-2xl font-bold leading-tight text-indigo-950">
-                Plan your new trip
+            <h2 className="text-2xl font-bold leading-tight text-primary">
+                {t('home.planTitle')}
             </h2>
-            <p className="text-sm font-normal text-purple-800">
-                Curate moments. Create your vibe. Begin your voyage.
+            <p className="text-sm font-normal text-primary">
+                {t('home.planSubtitle')}
             </p>
 
             {/* Form inputs */}
@@ -93,9 +95,9 @@ export default function PlanYourTrip() {
                 {/* Destination row */}
                 <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
-                        <MapPin className="size-5 text-indigo-600" />
+                        <MapPin className="size-5 text-primary" />
                         <span className="text-sm font-semibold text-gray-900">
-                            Where to ?
+                            {t('home.whereTo')}
                         </span>
                     </div>
                     <div className="flex-1">
@@ -114,24 +116,24 @@ export default function PlanYourTrip() {
                 {/* Date row */}
                 <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
-                        <CalendarDays className="size-5 text-indigo-600" />
+                        <CalendarDays className="size-5 text-primary" />
                         <span className="text-sm font-semibold text-gray-900">
-                            Day
+                            {t('home.day')}
                         </span>
                     </div>
                     <div className="flex flex-col sm:flex-row flex-1 gap-3">
                         <DatePickerInput
-                            placeholder="Start date"
+                            placeholder={t('home.startDate')}
                             value={startDate}
                             onChange={setStartDate}
                             disablePast
                             className="flex-1 w-auto min-w-0"
                         />
                         <span className="text-sm font-semibold text-gray-900 shrink-0 self-center">
-                            To
+                            {t('common.to')}
                         </span>
                         <DatePickerInput
-                            placeholder="End date"
+                            placeholder={t('home.endDate')}
                             value={endDate}
                             onChange={setEndDate}
                             minDate={startDate}
@@ -145,16 +147,16 @@ export default function PlanYourTrip() {
             {/* Error message */}
             {showError && (
                 <p className="text-xs font-light text-red-500">
-                    * Choose a destination to start planning
+                    {t('home.chooseDestinationError')}
                 </p>
             )}
 
             {/* Plan button */}
             <Button
                 onClick={handlePlan}
-                className="mt-5 w-full sm:w-53.5 h-8.25 rounded-lg bg-indigo-600 font-extrabold text-sm text-white shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-indigo-700 hover:shadow-none"
+                className="mt-5 w-full sm:w-53.5 h-8.25 rounded-lg bg-primary font-extrabold text-sm text-primary-foreground shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-primary/90 hover:shadow-none"
             >
-                Plan
+                {t('home.plan')}
             </Button>
         </div>
     );

@@ -14,8 +14,8 @@ export default function CreateTripPage() {
             : undefined;
 
     return (
-        <div className="w-full min-h-11/12 bg-white py-6 px-4 sm:px-8">
-            <div className="w-full min-h-full rounded-3xl shadow-lg bg-violet-50 py-10 px-6 sm:px-12">
+        <div className="w-full min-h-11/12 bg-background py-6 px-4 sm:px-8">
+            <div className="w-full min-h-full rounded-3xl shadow-lg bg-muted py-10 px-6 sm:px-12">
                 <CreateTrip initialData={initialData} />
             </div>
         </div>

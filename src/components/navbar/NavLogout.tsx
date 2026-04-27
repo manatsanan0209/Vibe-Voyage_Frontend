@@ -1,9 +1,11 @@
 import { LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function NavLogout() {
     const { logout } = useAuth();
+    const { t } = useI18n();
 
     return (
         <SidebarMenuItem>
@@ -13,7 +15,7 @@ export default function NavLogout() {
             >
                 <LogOut className="size-5 shrink-0 group-data-[collapsible=icon]:size-6" />
                 <span className="group-data-[collapsible=icon]:hidden">
-                    Logout
+                    {t('nav.logout')}
                 </span>
             </SidebarMenuButton>
         </SidebarMenuItem>

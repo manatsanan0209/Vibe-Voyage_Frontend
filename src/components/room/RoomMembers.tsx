@@ -30,12 +30,12 @@ interface RoomMembersProps {
 }
 
 const AVATAR_COLORS = [
-    'bg-indigo-500',
-    'bg-pink-500',
+    'bg-primary',
+    'bg-accent-foreground',
     'bg-emerald-500',
     'bg-amber-500',
     'bg-cyan-500',
-    'bg-purple-500',
+    'bg-ring',
 ];
 
 function avatarColor(userId: number) {
@@ -223,7 +223,7 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
                         <Button
                             type="button"
                             size="sm"
-                            className="bg-indigo-600 text-white hover:bg-indigo-700"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={handleOpenLifestyle}
                         >
                             Submit Lifestyle
@@ -232,7 +232,7 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
                 </div>
 
                 <div className="rounded-xl border border-foreground/8 overflow-hidden">
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-indigo-50/80 px-4 py-2.5 text-xs font-semibold text-indigo-700">
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-muted/80 px-4 py-2.5 text-xs font-semibold text-primary">
                         <p>Name</p>
                         <p>Status</p>
                         <p className="w-8" />
@@ -265,7 +265,7 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
                                     </span>
 
                                     {isOwnerMember(member) ? (
-                                        <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border-transparent">
+                                        <Badge className="bg-muted text-primary border-transparent">
                                             <Crown className="size-3" />
                                             Owner
                                         </Badge>

@@ -197,14 +197,14 @@ export default function JoinTripLifestyle() {
     }
 
     return (
-        <main className="w-full min-h-[calc(100dvh-6rem)] bg-white py-6 px-4 sm:px-8">
-            <div className="w-full min-h-full rounded-3xl shadow-lg bg-violet-50 py-8 px-6 sm:px-10 space-y-6">
+        <main className="w-full min-h-[calc(100dvh-6rem)] bg-background py-6 px-4 sm:px-8">
+            <div className="w-full min-h-full rounded-3xl shadow-lg bg-muted py-8 px-6 sm:px-10 space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-semibold text-indigo-950">
+                        <h1 className="text-2xl font-semibold text-foreground">
                             Your Lifestyle Preferences
                         </h1>
-                        <p className="text-sm text-indigo-700 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Add your style now to personalize planning, or skip
                             and do it later.
                         </p>
@@ -215,10 +215,12 @@ export default function JoinTripLifestyle() {
                 </div>
 
                 {contextError && (
-                    <p className="text-sm text-amber-700">{contextError}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {contextError}
+                    </p>
                 )}
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p className="text-sm text-destructive">{error}</p>}
 
                 {step === 1 ? (
                     <Step2TravelVibe
@@ -231,7 +233,7 @@ export default function JoinTripLifestyle() {
                     />
                 ) : (
                     <div className="space-y-6">
-                        <div className="rounded-xl border border-indigo-200 bg-white p-4">
+                        <div className="rounded-xl border border-border bg-card p-4">
                             <PreferredDestinations
                                 selected={preferredDestinations}
                                 onChange={setPreferredDestinations}
@@ -254,7 +256,7 @@ export default function JoinTripLifestyle() {
                         />
 
                         {isLoading && (
-                            <p className="text-sm text-indigo-700">
+                            <p className="text-sm text-muted-foreground">
                                 Submitting lifestyle...
                             </p>
                         )}
