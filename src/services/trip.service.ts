@@ -113,6 +113,7 @@ interface GetScheduleResponseData {
 }
 
 export interface ReplaceTripScheduleItemDTO {
+    trip_schedule_id?: number;
     day_number: number;
     sequence_order: number;
     place_name: string;

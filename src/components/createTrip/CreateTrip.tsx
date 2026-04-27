@@ -181,6 +181,7 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                 {step === 1 && (
                     <Step1TripInfo
                         onNext={(data) => {
+                            console.log('[Create Trip] Step 1 data:', data);
                             setStep1Data(data);
                             setStep(2);
                         }}

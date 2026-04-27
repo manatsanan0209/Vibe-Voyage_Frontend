@@ -51,6 +51,7 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
         initialData?.endDate ? new Date(initialData.endDate) : undefined,
     );
     const [preferredPlaces, setPreferredPlaces] = useState<Place[]>([]);
+    const [districtToProvince, setDistrictToProvince] = useState<Map<string, string>>(new Map());
 
     useEffect(() => {
         const fetchDestinations = async () => {
@@ -83,6 +84,10 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
                     value: d.district_id,
                     label: `${d.district_name_th}, ${d.province.province_name_th}`,
                 }));
+
+                const dpMap = new Map<string, string>();
+                json.data.forEach((d) => dpMap.set(d.district_id, d.province_id));
+                setDistrictToProvince(dpMap);
 
                 setDestinations([...provinceEntries, ...districtEntries]);
             } catch (err) {
@@ -170,10 +175,13 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
             <div className="w-full max-w-xl mx-auto flex items-center justify-between mt-4">
                 <div />
                 <Button
-                    onClick={() =>
+                    onClick={() => {
+                        const resolvedId = destination.startsWith('province_')
+                            ? destination.slice('province_'.length)
+                            : (districtToProvince.get(destination) ?? destination);
                         onNext({
                             tripName,
-                            destinationId: destination,
+                            destinationId: resolvedId,
                             destinationName:
                                 destinations.find((d) => d.value === destination)
                                     ?.label ?? '',
@@ -185,8 +193,8 @@ export default function Step1TripInfo({ onNext, initialData }: Step1TripInfoProp
                                 latitude: p.lat,
                                 longitude: p.lng,
                             })),
-                        })
-                    }
+                        });
+                    }}
                     className="w-25 h-10 rounded-lg bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 shadow-none"
                 >
                     Next

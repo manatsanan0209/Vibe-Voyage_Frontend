@@ -252,6 +252,7 @@ function buildReplaceSchedulePayload(
             day.items
                 .filter((item) => item.place_id !== '')
                 .map((item, index) => ({
+                    trip_schedule_id: Number(item.id) || undefined,
                     day_number: day.day_number,
                     sequence_order: index + 1,
                     place_name: item.place_name,
@@ -267,6 +268,7 @@ function buildReplaceSchedulePayload(
     const suggestionItems: ReplaceTripScheduleItemDTO[] = places
         .filter((place) => place.place_id !== '')
         .map((place) => ({
+            trip_schedule_id: Number(place.id) || undefined,
             day_number: 0,
             sequence_order: 0,
             place_name: place.name,
