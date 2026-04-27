@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, CalendarDays } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DestinationSelect } from '@/components/createTrip/DestinationSelect';
 import { DatePickerInput } from '@/components/createTrip/DatePickerInput';
 import { useI18n } from '@/hooks/useI18n';
 import type { ApiResponseDTO } from '@/types/api';
 import type { District } from '@/types/place';
+import location from '@/assets/location.png';
+
 
 type Destination = {
     value: string;
@@ -15,7 +17,7 @@ type Destination = {
 
 export default function PlanYourTrip() {
     const navigate = useNavigate();
-    const { t } = useI18n();
+    const { t, lang } = useI18n();
     const [destination, setDestination] = useState('');
     const [startDate, setStartDate] = useState<Date | undefined>(undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -87,7 +89,20 @@ export default function PlanYourTrip() {
                 {t('home.planTitle')}
             </h2>
             <p className="text-sm font-normal text-primary">
-                {t('home.planSubtitle')}
+                {lang === 'th' ? (
+                    <>
+                        คัดสรรช่วงเวลา สร้าง{' '}
+                        <span className="text-accent-foreground">vibe</span>{' '}
+                        เริ่มต้นการเดินทาง
+                    </>
+                ) : (
+                    <>
+                        Curate moments. Create your{' '}
+                        <span className="text-accent-foreground">vibe</span>.
+                        Begin your{' '}
+                        <span className="text-accent-foreground">voyage</span>.
+                    </>
+                )}
             </p>
 
             {/* Form inputs */}
@@ -95,7 +110,11 @@ export default function PlanYourTrip() {
                 {/* Destination row */}
                 <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
-                        <MapPin className="size-5 text-primary" />
+                        <img
+                            src={location}
+                            alt="Map"
+                            className="w-5 h-5 object-cover"
+                        />{' '}
                         <span className="text-sm font-semibold text-gray-900">
                             {t('home.whereTo')}
                         </span>
