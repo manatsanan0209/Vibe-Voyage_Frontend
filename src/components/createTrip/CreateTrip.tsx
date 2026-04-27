@@ -109,7 +109,7 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
         <div className="w-full flex flex-col gap-8">
             {isSubmitting && (
                 <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/50">
-                    <div className="w-12 h-12 rounded-full border-4 border-indigo-300 border-t-indigo-600 animate-spin" />
+                    <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
                     <p className="mt-4 text-white font-medium">
                         กำลังสร้างทริปของคุณ...
                     </p>
@@ -117,13 +117,13 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
             )}
 
             {submitError && (
-                <p className="text-sm text-red-600 text-center" role="alert">
+                <p className="text-sm text-destructive text-center" role="alert">
                     {submitError}
                 </p>
             )}
             {/* Step indicator */}
             <div className="flex flex-col items-center gap-3">
-                <p className="text-2xl font-semibold text-black">
+                <p className="text-2xl font-semibold text-foreground">
                     {STEP_TITLES[step]}
                 </p>
 
@@ -135,10 +135,10 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                             <div className="flex flex-col items-center gap-1 shrink-0">
                                 <span
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-300 ${n < step
-                                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                                            ? 'bg-primary border-primary text-primary-foreground'
                                             : n === step
-                                                ? 'bg-white border-indigo-600 text-indigo-600 shadow-md shadow-gray-400'
-                                                : 'bg-white border-gray-400 text-gray-400'
+                                                ? 'bg-card border-primary text-primary shadow-sm'
+                                                : 'bg-card border-border text-muted-foreground'
                                         }`}
                                 >
                                     {n < step ? (
@@ -166,8 +166,8 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                             {i < 2 && (
                                 <div
                                     className={`flex-1 h-0.5 mx-1 transition-all duration-300 ${n < step
-                                            ? 'bg-indigo-600'
-                                            : 'bg-gray-400'
+                                            ? 'bg-primary'
+                                            : 'bg-border'
                                         }`}
                                 />
                             )}

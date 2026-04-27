@@ -33,14 +33,14 @@ export default function JoinRoom({ onBack, onSuccess }: JoinRoomProps) {
                     type="button"
                     onClick={onBack}
                     aria-label="Back"
-                    className="text-slate-500 hover:text-indigo-700 transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft className="size-4" />
                 </button>
             </div>
 
             <div className="space-y-4">
-                <p className="text-center text-base font-semibold text-zinc-900">
+                <p className="text-center text-base font-semibold text-foreground">
                     Enter the invitation code
                 </p>
 
@@ -56,17 +56,19 @@ export default function JoinRoom({ onBack, onSuccess }: JoinRoomProps) {
                         onChange={(event) => setInviteCode(event.target.value)}
                         placeholder="Invitation Code"
                         autoComplete="off"
-                        className="h-8 border-zinc-300 bg-zinc-50 pl-7 text-[11px] tracking-normal text-center placeholder:text-zinc-400"
+                        className="h-8 border-border bg-background pl-7 text-[11px] tracking-normal text-center placeholder:text-muted-foreground"
                     />
                 </div>
             </div>
 
-            {error && <p className="text-center text-sm text-red-600">{error}</p>}
+            {error && (
+                <p className="text-center text-sm text-destructive">{error}</p>
+            )}
 
             <div className="flex justify-center">
                 <Button
                     type="submit"
-                    className="h-8 min-w-17 rounded-md bg-indigo-600 px-7 text-xs font-semibold hover:bg-indigo-700"
+                    className="h-8 min-w-17 rounded-md px-7 text-xs font-semibold"
                     disabled={isLoading}
                 >
                     {isLoading ? 'Joining...' : 'Join'}

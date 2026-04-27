@@ -18,7 +18,7 @@ export default function NavItem({ icon, iconFocus, label, to }: NavItemProps) {
                 asChild
                 isActive={isActive}
                 tooltip={label}
-                className="h-10.75 rounded-none px-6 font-bold text-sm transition-all duration-200 hover:rounded-4xl data-[active=true]:rounded-4xl data-[active=true]:bg-[#4c3d79]! data-[active=true]:text-white! data-[active=true]:shadow-[0px_4px_5px_0px_rgba(76,61,121,0.3)] group-data-[collapsible=icon]:h-10.75! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-0! group-data-[collapsible=icon]:justify-center!"
+                className="h-10.75 rounded-none px-6 font-bold text-sm transition-all duration-200 hover:rounded-4xl data-[active=true]:rounded-4xl data-[active=true]:bg-primary! data-[active=true]:text-primary-foreground! data-[active=true]:shadow-sm group-data-[collapsible=icon]:h-10.75! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-0! group-data-[collapsible=icon]:justify-center!"
             >
                 <Link
                     to={to}

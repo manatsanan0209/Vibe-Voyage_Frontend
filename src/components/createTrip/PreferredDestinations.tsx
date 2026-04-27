@@ -85,7 +85,7 @@ export function PreferredDestinations({
                     <PopoverTrigger asChild>
                         <button
                             type="button"
-                            className="w-8 h-8 rounded-md bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors shrink-0"
+                            className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0"
                         >
                             <Plus size={18} />
                         </button>
@@ -140,7 +140,7 @@ export function PreferredDestinations({
                 <p className="text-base font-semibold">
                     Add preferred destination
                 </p>
-                <span className="text-pink-500 font-light text-sm ">
+                <span className="text-accent-foreground font-light text-sm ">
                     * not required
                 </span>
             </div>
@@ -151,13 +151,13 @@ export function PreferredDestinations({
                     {selected.map((place) => (
                         <div
                             key={place.value}
-                            className="flex items-center gap-3 border-indigo-500 rounded-md px-3 py-1.5 bg-white border-2"
+                            className="flex items-center gap-3 border-ring rounded-md px-3 py-1.5 bg-white border-2"
                         >
                             <span className="text-sm">{place.label}</span>
                             <button
                                 type="button"
                                 onClick={() => handleRemove(place.value)}
-                                className="text-pink-500 hover:text-pink-700 transition-colors"
+                                className="text-accent-foreground hover:text-accent-foreground/70 transition-colors"
                             >
                                 <X size={14} />
                             </button>

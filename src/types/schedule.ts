@@ -17,6 +17,6 @@ export type ScheduleDay = {
     id: string; // DnD container id (e.g. "day-1")
     day_number: number; // 1-based, maps to DB day_number
     date: string; // YYYY-MM-DD, used to generate ISO times
-    dateLabel: string;
+    dateLabel?: string;
     items: ScheduleItem[];
 };

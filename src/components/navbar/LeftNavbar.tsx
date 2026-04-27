@@ -2,6 +2,7 @@ import NavItem from './NavItem';
 import NavLogo from './NavLogo';
 import NavLogout from './NavLogout';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/hooks/useI18n';
 import {
     Sidebar,
     SidebarContent,
@@ -20,37 +21,43 @@ import aboutUsIconFocus from '@/assets/leftnavbar/about-us-icon-focus.png';
 import settingIcon from '@/assets/leftnavbar/setting-icon.png';
 import settingIconFocus from '@/assets/leftnavbar/setting-icon-focus.png';
 
-const baseNavItems = [
-    { icon: homeIcon, iconFocus: homeIconFocus, label: 'Home', to: '/' },
-    {
-        icon: tripSuggestIcon,
-        iconFocus: tripSuggestIconFocus,
-        label: 'Trip Suggestions',
-        to: '/trips',
-    },
-    {
-        icon: aboutUsIcon,
-        iconFocus: aboutUsIconFocus,
-        label: 'About Us',
-        to: '/about',
-    },
-    {
-        icon: settingIcon,
-        iconFocus: settingIconFocus,
-        label: 'Setting',
-        to: '/settings',
-    },
-];
-
-const yourTripsItem = {
-    icon: yourTripsIcon,
-    iconFocus: yourTripIconFocus,
-    label: 'Your Trips',
-    to: '/your-trips',
-};
-
 export default function LeftNavbar() {
     const { isAuthenticated } = useAuth();
+    const { t } = useI18n();
+
+    const baseNavItems = [
+        {
+            icon: homeIcon,
+            iconFocus: homeIconFocus,
+            label: t('nav.home'),
+            to: '/',
+        },
+        {
+            icon: tripSuggestIcon,
+            iconFocus: tripSuggestIconFocus,
+            label: t('nav.tripSuggestions'),
+            to: '/trips',
+        },
+        {
+            icon: aboutUsIcon,
+            iconFocus: aboutUsIconFocus,
+            label: t('nav.aboutUs'),
+            to: '/about',
+        },
+        {
+            icon: settingIcon,
+            iconFocus: settingIconFocus,
+            label: t('nav.settings'),
+            to: '/settings',
+        },
+    ];
+
+    const yourTripsItem = {
+        icon: yourTripsIcon,
+        iconFocus: yourTripIconFocus,
+        label: t('nav.yourTrips'),
+        to: '/your-trips',
+    };
 
     const navItems = isAuthenticated
         ? [baseNavItems[0], yourTripsItem, ...baseNavItems.slice(1)]

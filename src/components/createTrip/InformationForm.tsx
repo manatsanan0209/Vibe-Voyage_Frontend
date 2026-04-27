@@ -46,9 +46,9 @@ export default function InformationForm({ onNext }: InformationFormProps) {
                 <img
                     src={map}
                     alt="Map"
-                    className="w-10 h-10 object-cover bg-neutral-200 rounded-full border-2 border-indigo-600 shadow-md shadow-gray-400"
+                    className="w-10 h-10 object-cover bg-muted rounded-full border-2 border-primary shadow-sm"
                 />
-                <p className="text-md text-purple-950 font-semibold">
+                <p className="text-md text-foreground font-semibold">
                     Trip Information
                 </p>
             </div>
@@ -59,7 +59,7 @@ export default function InformationForm({ onNext }: InformationFormProps) {
                 </p>
                 <Input
                     type="text"
-                    className="h-10 bg-white w-full"
+                    className="h-10 bg-background w-full"
                     placeholder="Your Trip Name"
                 />
 
@@ -112,7 +112,7 @@ export default function InformationForm({ onNext }: InformationFormProps) {
                 <Button
                     type="button"
                     onClick={onNext}
-                    className="w-1/12 h-10 rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
+                    className="w-1/12 h-10 rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                     Next step
                 </Button>

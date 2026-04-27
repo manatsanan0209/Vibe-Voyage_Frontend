@@ -16,16 +16,8 @@ import YourSchedule from './Column/YourSchedule';
 import type { PlaceSuggestion } from '@/types/place';
 import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
 import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
-
-function formatTime(time?: string): string {
-    if (!time) return '?';
-    if (/^\d{1,2}:\d{2}$/.test(time)) return time;
-    return new Date(time).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    });
-}
+import { useSettings } from '@/context/SettingsContext';
+import { useI18n } from '@/hooks/useI18n';
 
 const SLOT_TIMES = [
     { start: '08:30', end: '10:30' },
@@ -61,6 +53,10 @@ export default function RoomPlanning({
     setSchedule,
     readOnly = false,
 }: RoomPlanningProps) {
+    const { formatTime } = useSettings();
+    const formatTimeSafe = (value?: string) =>
+        value ? formatTime(value) : '?';
+    const { t } = useI18n();
     const [activeId, setActiveId] = useState<string | null>(null);
     const [showMap, setShowMap] = useState(false);
 
@@ -314,32 +310,32 @@ export default function RoomPlanning({
             {/* Floating Map button — only on smaller than lg */}
             <button
                 onClick={() => setShowMap(true)}
-                className="fixed bottom-6 right-6 z-40 lg:hidden flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-all"
+                className="fixed bottom-6 right-6 z-40 lg:hidden flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
             >
                 <MdMap className="w-5 h-5" />
-                <span className="text-sm font-semibold">Map</span>
+                <span className="text-sm font-semibold">{t('map.map')}</span>
             </button>
 
             <DragOverlay>
                 {activePlaceItem && (
-                    <div className="flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-lg opacity-90 cursor-grabbing">
+                    <div className="flex flex-row items-center justify-between rounded-xl border-2 border-primary bg-background px-5 py-4 shadow-lg opacity-90 cursor-grabbing">
                         <div className="flex flex-col my-1">
-                            <p className="text-indigo-600 text-sm">
+                            <p className="text-primary text-sm">
                                 {activePlaceItem.name}
                             </p>
-                            <p className="text-indigo-600 text-sm">
+                            <p className="text-primary text-sm">
                                 {activePlaceItem.address}
                             </p>
                         </div>
                     </div>
                 )}
                 {activeScheduleItem && (
-                    <div className="flex items-start gap-4 rounded-2xl bg-indigo-100/70 px-5 py-4 shadow-lg opacity-90 cursor-grabbing">
+                    <div className="flex items-start gap-4 rounded-2xl bg-secondary/70 px-5 py-4 shadow-lg opacity-90 cursor-grabbing">
                         <div className="min-w-0">
                             <p className="text-base font-semibold tracking-tight">
                                 {activeScheduleItem.start_time
-                                    ? `${formatTime(activeScheduleItem.start_time)} – ${formatTime(activeScheduleItem.end_time)}`
-                                    : 'No time set'}
+                                    ? `${formatTimeSafe(activeScheduleItem.start_time)} – ${formatTimeSafe(activeScheduleItem.end_time)}`
+                                    : t('schedule.noTimeSet')}
                             </p>
                             <p className="mt-1 text-sm text-foreground/80">
                                 {activeScheduleItem.place_name}

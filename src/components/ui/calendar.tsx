@@ -123,7 +123,7 @@ function Calendar({
                     defaultClassNames.range_end,
                 ),
                 today: cn(
-                    'bg-pink-500 text-white rounded-md data-[selected=true]:bg-transparent data-[selected=true]:text-inherit data-[selected=true]:rounded-none',
+                    'bg-accent-foreground text-primary-foreground rounded-md data-[selected=true]:bg-transparent data-[selected=true]:text-inherit data-[selected=true]:rounded-none',
                     defaultClassNames.today,
                 ),
                 outside: cn(

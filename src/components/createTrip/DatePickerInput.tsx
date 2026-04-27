@@ -9,15 +9,8 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-
-function formatDate(date: Date | undefined) {
-    if (!date) return '';
-    return date.toLocaleDateString('en-US', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-    });
-}
+import { useSettings } from '@/context/SettingsContext';
+import { useI18n } from '@/hooks/useI18n';
 
 type DatePickerInputProps = {
     placeholder?: string;
@@ -30,7 +23,7 @@ type DatePickerInputProps = {
 };
 
 export function DatePickerInput({
-    placeholder = 'Pick a date',
+    placeholder,
     value,
     onChange,
     className,
@@ -38,6 +31,9 @@ export function DatePickerInput({
     minDate,
     rangeFrom,
 }: DatePickerInputProps) {
+    const { formatDate } = useSettings();
+    const { t } = useI18n();
+    const resolvedPlaceholder = placeholder ?? t('datePicker.pickDate');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const [open, setOpen] = React.useState(false);
@@ -60,7 +56,7 @@ export function DatePickerInput({
                     )}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {value ? formatDate(value) : placeholder}
+                    {value ? formatDate(value) : resolvedPlaceholder}
                 </Button>
             </PopoverTrigger>
             <PopoverContent

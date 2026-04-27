@@ -8,10 +8,12 @@ import { Field, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field';
 import type { ApiErrorResponseDTO } from '@/types/api';
 import type { RegisterRequestDTO } from '@/types/auth';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function FormSignUp() {
     const navigate = useNavigate();
     const { register } = useAuth();
+    const { t } = useI18n();
     const [showPassword, setShowPassword] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState('');
     const [form, setForm] = useState<RegisterRequestDTO>({
@@ -33,12 +35,12 @@ export default function FormSignUp() {
             !form.email ||
             !form.password
         ) {
-            setError('Please fill in all fields.');
+            setError(t('authForm.signUpMissing'));
             return;
         }
 
         if (form.password !== confirmPassword) {
-            setError('Passwords do not match.');
+            setError(t('authForm.signUpPasswordMismatch'));
             return;
         }
 
@@ -51,9 +53,9 @@ export default function FormSignUp() {
             if (axios.isAxiosError<ApiErrorResponseDTO>(err)) {
                 const message =
                     err.response?.data?.error || err.response?.data?.message;
-                setError(message || 'Sign up failed. Please try again.');
+                setError(message || t('authForm.signUpFailed'));
             } else {
-                setError('Sign up failed. Please try again.');
+                setError(t('authForm.signUpFailed'));
             }
             console.error('Sign up error:', err);
         } finally {
@@ -68,11 +70,13 @@ export default function FormSignUp() {
             <FieldSet className="w-full">
                 <FieldGroup>
                     <Field className="w-full">
-                        <FieldLabel htmlFor="fullName">Full Name</FieldLabel>
+                        <FieldLabel htmlFor="fullName">
+                            {t('authForm.fullName')}
+                        </FieldLabel>
                         <Input
                             id="fullName"
                             type="text"
-                            placeholder="Enter your Full Name"
+                            placeholder={t('authForm.fullNamePlaceholder')}
                             className="h-10"
                             value={form.full_name}
                             onChange={(event) =>
@@ -84,11 +88,13 @@ export default function FormSignUp() {
                         />
                     </Field>
                     <Field className="w-full">
-                        <FieldLabel htmlFor="username">Username</FieldLabel>
+                        <FieldLabel htmlFor="username">
+                            {t('authForm.username')}
+                        </FieldLabel>
                         <Input
                             id="username"
                             type="text"
-                            placeholder="Enter your Username"
+                            placeholder={t('authForm.usernamePlaceholder')}
                             className="h-10"
                             value={form.username}
                             onChange={(event) =>
@@ -100,11 +106,11 @@ export default function FormSignUp() {
                         />
                     </Field>
                     <Field className="w-full">
-                        <FieldLabel htmlFor="email">Email</FieldLabel>
+                        <FieldLabel htmlFor="email">{t('authForm.email')}</FieldLabel>
                         <Input
                             id="email"
                             type="text"
-                            placeholder="Enter your Email"
+                            placeholder={t('authForm.emailPlaceholder')}
                             className="h-10"
                             value={form.email}
                             onChange={(event) =>
@@ -116,12 +122,14 @@ export default function FormSignUp() {
                         />
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="password">Password</FieldLabel>
+                        <FieldLabel htmlFor="password">
+                            {t('authForm.password')}
+                        </FieldLabel>
                         <div className="relative">
                             <Input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
-                                placeholder="Enter your Password"
+                                placeholder={t('authForm.passwordPlaceholder')}
                                 className="h-10 pr-10"
                                 value={form.password}
                                 onChange={(event) =>
@@ -136,8 +144,8 @@ export default function FormSignUp() {
                                 onClick={() => setShowPassword((prev) => !prev)}
                                 aria-label={
                                     showPassword
-                                        ? 'Hide password'
-                                        : 'Show password'
+                                        ? t('authForm.hidePassword')
+                                        : t('authForm.showPassword')
                                 }
                                 aria-pressed={showPassword}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -152,12 +160,12 @@ export default function FormSignUp() {
                     </Field>
                     <Field className="w-full">
                         <FieldLabel htmlFor="confirmPassword">
-                            Confirm Password
+                            {t('authForm.confirmPassword')}
                         </FieldLabel>
                         <Input
                             id="confirmPassword"
                             type="password"
-                            placeholder="Confirm your Password"
+                            placeholder={t('authForm.confirmPasswordPlaceholder')}
                             className="h-10"
                             value={confirmPassword}
                             onChange={(event) =>
@@ -176,18 +184,18 @@ export default function FormSignUp() {
                 <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-10/12 h-auto rounded-md font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
+                    className="w-10/12 h-auto rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                    {isSubmitting ? 'Signing Up...' : 'Sign Up'}
+                    {isSubmitting ? t('authForm.signingUp') : t('authForm.signUp')}
                 </Button>
             </div>
             <p className=" mt-4 justify-center text-center font-normal text-muted-foreground text-sm">
-                Already have an account?{' '}
+                {t('authForm.haveAccount')}{' '}
                 <a
                     href="/signin"
-                    className="text-indigo-400 font-semibold hover:underline"
+                    className="text-muted-foreground font-semibold hover:underline"
                 >
-                    Sign In
+                    {t('authForm.signInLink')}
                 </a>
             </p>
         </form>
