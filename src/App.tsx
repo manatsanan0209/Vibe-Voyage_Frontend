@@ -17,11 +17,13 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import JoinTripLifestyle from '@/page/JoinTripLifestyle';
+import { Toaster } from '@/components/ui/sonner';
 
 export function App() {
     return (
         <AuthProvider>
             <SettingsProvider>
+                <Toaster />
                 <Routes>
                     <Route element={<MainLayout />}>
                         <Route path="/" element={<Home />} />

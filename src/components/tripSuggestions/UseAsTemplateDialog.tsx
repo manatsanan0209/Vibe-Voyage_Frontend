@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { suggestionService } from '@/services/suggestion.service';
 import { useI18n } from '@/hooks/useI18n';
+import { differenceInDays, parseISO, addDays, format } from 'date-fns';
 
 interface UseAsTemplateDialogProps {
     open: boolean;
@@ -22,6 +24,26 @@ interface UseAsTemplateDialogProps {
     originalDays: number;
 }
 
+function getApiErrorMessage(err: unknown, lang: string): string {
+    if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const msg: string =
+            err.response?.data?.error || err.response?.data?.message || '';
+
+        if (status === 403) {
+            return lang === 'th'
+                ? 'ไม่สามารถใช้ทริปของตัวเองหรือทริปที่เป็นสมาชิกอยู่เป็น template ได้'
+                : 'You cannot use a trip you already belong to as a template.';
+        }
+        if (status === 400 && msg) {
+            return msg;
+        }
+    }
+    return lang === 'th'
+        ? 'ไม่สามารถสร้างทริปได้ กรุณาลองใหม่อีกครั้ง'
+        : 'Failed to create trip. Please try again.';
+}
+
 export default function UseAsTemplateDialog({
     open,
     onOpenChange,
@@ -29,7 +51,7 @@ export default function UseAsTemplateDialog({
     destinationName,
     originalDays,
 }: UseAsTemplateDialogProps) {
-    const { t } = useI18n();
+    const { t, lang } = useI18n();
     const navigate = useNavigate();
     const [roomName, setRoomName] = useState('');
     const [startDate, setStartDate] = useState('');
@@ -50,9 +72,28 @@ export default function UseAsTemplateDialog({
         onOpenChange(val);
     }
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // minimum end date = start + (originalDays - 1) days
+    const minEndDate = startDate
+        ? format(
+              addDays(parseISO(startDate), originalDays - 1),
+              'yyyy-MM-dd',
+          )
+        : today;
+
+    const selectedDays =
+        startDate && endDate
+            ? differenceInDays(parseISO(endDate), parseISO(startDate)) + 1
+            : 0;
+
+    const durationShort =
+        !!(startDate && endDate && selectedDays < originalDays);
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!roomName.trim() || !startDate || !endDate) return;
+        if (durationShort) return;
 
         setSubmitting(true);
         setError(null);
@@ -71,14 +112,12 @@ export default function UseAsTemplateDialog({
             navigate(`/your-trips/${result.trip_id}`, {
                 state: { fromCreateTrip: true, createdAt: Date.now() },
             });
-        } catch {
-            setError('Failed to create trip. Please try again.');
+        } catch (err) {
+            setError(getApiErrorMessage(err, lang));
         } finally {
             setSubmitting(false);
         }
     }
-
-    const today = new Date().toISOString().split('T')[0];
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -123,8 +162,7 @@ export default function UseAsTemplateDialog({
                             min={today}
                             onChange={(e) => {
                                 setStartDate(e.target.value);
-                                if (endDate && e.target.value > endDate)
-                                    setEndDate('');
+                                setEndDate('');
                             }}
                             required
                         />
@@ -138,11 +176,35 @@ export default function UseAsTemplateDialog({
                             id="tpl-end-date"
                             type="date"
                             value={endDate}
-                            min={startDate || today}
+                            min={minEndDate}
                             onChange={(e) => setEndDate(e.target.value)}
+                            disabled={!startDate}
                             required
                         />
+                        <p className="text-xs text-foreground/50">
+                            {lang === 'th'
+                                ? `ต้องเลือกอย่างน้อย ${originalDays} วัน`
+                                : `Minimum ${originalDays} day${originalDays > 1 ? 's' : ''} required`}
+                            {selectedDays > 0 && selectedDays > originalDays && (
+                                <span className="ml-1 text-amber-600">
+                                    ({selectedDays} {t('tripSuggestions.days')}{' '}
+                                    —{' '}
+                                    {lang === 'th'
+                                        ? `${selectedDays - originalDays} วันจะว่างเปล่า`
+                                        : `${selectedDays - originalDays} day${selectedDays - originalDays > 1 ? 's' : ''} will be empty`}
+                                    )
+                                </span>
+                            )}
+                        </p>
                     </div>
+
+                    {durationShort && (
+                        <p className="text-sm text-red-600">
+                            {lang === 'th'
+                                ? `ต้องเลือกอย่างน้อย ${originalDays} วัน เพื่อให้ตรงกับ template`
+                                : `Select at least ${originalDays} days to match the template.`}
+                        </p>
+                    )}
 
                     {error && (
                         <p className="text-sm text-red-600">{error}</p>
@@ -163,7 +225,8 @@ export default function UseAsTemplateDialog({
                                 submitting ||
                                 !roomName.trim() ||
                                 !startDate ||
-                                !endDate
+                                !endDate ||
+                                durationShort
                             }
                         >
                             {submitting

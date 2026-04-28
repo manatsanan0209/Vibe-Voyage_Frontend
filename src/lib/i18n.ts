@@ -176,6 +176,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
             by: 'by',
             days: 'days',
             useAsTemplate: 'Use as Template',
+            ownerNotice: 'You are the owner of this trip',
+            memberNotice: 'You are a member of this trip',
             like: 'Like',
             unlike: 'Unlike',
             bookmark: 'Save',
@@ -186,7 +188,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
             noSchedule: 'No schedule available for this trip.',
             templateDialog: {
                 title: 'Use as Template',
-                description: 'This will create a new trip based on this schedule. Choose your own dates.',
+                description:
+                    'This will create a new trip based on this schedule. Choose your own dates.',
                 roomName: 'Trip Name',
                 roomNamePlaceholder: 'e.g. My Chiang Mai Trip',
                 startDate: 'Start Date',
@@ -200,7 +203,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
                 publish: 'Publish',
                 unpublish: 'Unpublish',
                 publishTitle: 'Publish Your Trip',
-                publishDescription: 'Share your trip with the community. Others can view, like, and use it as a template.',
+                publishDescription:
+                    'Share your trip with the community. Others can view, like, and use it as a template.',
                 titleLabel: 'Title',
                 titlePlaceholder: 'e.g. 5 Days in Chiang Mai',
                 descriptionLabel: 'Description',
@@ -208,7 +212,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
                 confirmPublish: 'Publish',
                 publishing: 'Publishing…',
                 unpublishTitle: 'Unpublish Trip',
-                unpublishDescription: 'Your trip will be removed from the public feed immediately. You can publish it again later.',
+                unpublishDescription:
+                    'Your trip will be removed from the public feed immediately. You can publish it again later.',
                 confirmUnpublish: 'Unpublish',
                 unpublishing: 'Removing…',
                 cancel: 'Cancel',
@@ -385,6 +390,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
             by: 'โดย',
             days: 'วัน',
             useAsTemplate: 'ใช้เป็น Template',
+            ownerNotice: 'คุณเป็นเจ้าของห้องนี้',
+            memberNotice: 'คุณเป็นสมาชิกห้องนี้',
             like: 'ถูกใจ',
             unlike: 'เลิกถูกใจ',
             bookmark: 'บันทึก',
@@ -395,7 +402,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
             noSchedule: 'ทริปนี้ยังไม่มีตารางเดินทาง',
             templateDialog: {
                 title: 'ใช้เป็น Template',
-                description: 'ระบบจะสร้างทริปใหม่จาก schedule นี้ เลือกวันที่ของคุณเอง',
+                description:
+                    'ระบบจะสร้างทริปใหม่จาก schedule นี้ เลือกวันที่ของคุณเอง',
                 roomName: 'ชื่อทริป',
                 roomNamePlaceholder: 'เช่น ทริปเชียงใหม่ของฉัน',
                 startDate: 'วันเริ่มต้น',
@@ -409,7 +417,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
                 publish: 'เผยแพร่',
                 unpublish: 'ยกเลิกการเผยแพร่',
                 publishTitle: 'เผยแพร่ทริปของคุณ',
-                publishDescription: 'แชร์ทริปให้คนอื่นเห็น ดู กด like และเอาไปเป็น template ได้',
+                publishDescription:
+                    'แชร์ทริปให้คนอื่นเห็น ดู กด like และเอาไปเป็น template ได้',
                 titleLabel: 'ชื่อทริป',
                 titlePlaceholder: 'เช่น เที่ยวเชียงใหม่ 5 วัน',
                 descriptionLabel: 'คำอธิบาย',
@@ -417,7 +426,8 @@ const DICT: Record<SupportedLanguage, Dict> = {
                 confirmPublish: 'เผยแพร่',
                 publishing: 'กำลังเผยแพร่…',
                 unpublishTitle: 'ยกเลิกการเผยแพร่',
-                unpublishDescription: 'ทริปจะหายออกจาก feed ทันที สามารถเผยแพร่ใหม่ได้ภายหลัง',
+                unpublishDescription:
+                    'ทริปจะหายออกจาก feed ทันที สามารถเผยแพร่ใหม่ได้ภายหลัง',
                 confirmUnpublish: 'ยกเลิกการเผยแพร่',
                 unpublishing: 'กำลังลบออก…',
                 cancel: 'ยกเลิก',
