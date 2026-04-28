@@ -22,6 +22,7 @@ export interface RoomMemberLifestyleSubmission {
     role: number;
     role_name: 'owner' | 'room_owner' | 'member' | 'spectator' | 'unknown';
     has_submitted_lifestyle: boolean;
+    has_analyzed_lifestyle: boolean;
     lifestyle_id: number | null;
 }
 
