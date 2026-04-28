@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useBeforeUnload, useBlocker } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import {
     Loader2,
     Monitor,
@@ -17,17 +16,10 @@ import {
     Activity,
     MapPin,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -81,7 +73,7 @@ function SettingRow({
 }: {
     label: string;
     description?: string;
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     return (
         <div className="flex items-center justify-between gap-4 py-4">
@@ -107,9 +99,9 @@ function SectionCard({
     title,
     children,
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     title: string;
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     return (
         <section className="rounded-2xl border border-border bg-white px-6 py-5">
@@ -177,174 +169,25 @@ export default function Settings() {
         useSettings();
     const { t } = useI18n();
 
-    const [toast, setToast] = useState<{
-        text: string;
-        type: 'success' | 'error';
-    } | null>(null);
-    const [baselineSettings, setBaselineSettings] = useState<UserSettings | null>(
-        null,
-    );
-
-    const effectiveBaseline = useMemo(() => {
-        if (!settings) return null;
-        if (
-            !baselineSettings ||
-            baselineSettings.settings_id !== settings.settings_id
-        ) {
-            return settings;
-        }
-        return baselineSettings;
-    }, [baselineSettings, settings]);
-
-    const settingsSnapshot = useMemo(
-        () => JSON.stringify(settings ?? null),
-        [settings],
-    );
-    const baselineSnapshot = useMemo(
-        () => JSON.stringify(effectiveBaseline ?? null),
-        [effectiveBaseline],
-    );
-    const hasUnsavedChanges =
-        Boolean(settings && effectiveBaseline) &&
-        settingsSnapshot !== baselineSnapshot;
-
-    const blocker = useBlocker(hasUnsavedChanges);
-
-    useEffect(() => {
-        if (!toast) return;
-        const id = window.setTimeout(() => setToast(null), 3500);
-        return () => window.clearTimeout(id);
-    }, [toast]);
-
-    useBeforeUnload(
-        (event) => {
-            if (!hasUnsavedChanges) return;
-            event.preventDefault();
-            event.returnValue = '';
-        },
-        { capture: true },
-    );
-
     async function handleSave() {
         try {
             await saveSettings();
-            setBaselineSettings(settings);
-            setToast({ text: t('settings.saveSuccess'), type: 'success' });
+            toast.success(t('settings.saveSuccess'), {
+                icon: <CheckCircle2 className="size-4" />,
+            });
         } catch {
-            setToast({ text: t('settings.saveFail'), type: 'error' });
+            toast.error(t('settings.saveFail'), {
+                icon: <XCircle className="size-4" />,
+            });
         }
     }
 
     function set<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
-        if (
-            settings &&
-            (!baselineSettings ||
-                baselineSettings.settings_id !== settings.settings_id)
-        ) {
-            setBaselineSettings(settings);
-        }
         updateLocal({ [key]: value });
-    }
-
-    function handleDiscardChanges() {
-        const baseline = effectiveBaseline;
-        if (baseline) {
-            updateLocal(baseline);
-        }
-        if (blocker.state === 'blocked') {
-            blocker.proceed();
-        }
-    }
-
-    async function handleSaveAndLeave() {
-        try {
-            await saveSettings();
-            setBaselineSettings(settings);
-            setToast({ text: t('settings.saveSuccess'), type: 'success' });
-            if (blocker.state === 'blocked') {
-                blocker.proceed();
-            }
-        } catch {
-            setToast({ text: t('settings.saveFail'), type: 'error' });
-        }
     }
 
     return (
         <main className="flex flex-col gap-6 sm:gap-8 px-4 sm:px-8 pb-12">
-            {/* Toast */}
-            {toast && (
-                <div
-                    className={cn(
-                        'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-lg',
-                        toast.type === 'success'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                            : 'border-red-200 bg-red-50 text-red-700',
-                    )}
-                >
-                    {toast.type === 'success' ? (
-                        <CheckCircle2 className="size-4 shrink-0" />
-                    ) : (
-                        <XCircle className="size-4 shrink-0" />
-                    )}
-                    {toast.text}
-                </div>
-            )}
-
-            <Dialog
-                open={blocker.state === 'blocked'}
-                onOpenChange={(open) => {
-                    if (!open && blocker.state === 'blocked') {
-                        blocker.reset();
-                    }
-                }}
-            >
-                <DialogContent className="sm:max-w-md" showCloseButton={false}>
-                    <DialogHeader>
-                        <DialogTitle>{t('settings.saveChanges')}</DialogTitle>
-                        <DialogDescription>
-                            You have unsaved changes. Do you want to save before
-                            leaving this page?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                if (blocker.state === 'blocked') {
-                                    blocker.reset();
-                                }
-                            }}
-                            disabled={saving}
-                        >
-                            Keep editing
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleDiscardChanges}
-                            disabled={saving}
-                        >
-                            Discard
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleSaveAndLeave}
-                            disabled={saving}
-                        >
-                            {saving ? (
-                                <>
-                                    <Loader2 className="mr-2 size-4 animate-spin" />
-                                    {t('settings.saving')}
-                                </>
-                            ) : (
-                                'Save changes'
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
             <div className="w-full rounded-4xl bg-muted px-4 sm:px-8 py-6 sm:py-8">
                 <h1 className="mb-6 text-2xl font-bold text-primary">
                     {t('settings.title')}
