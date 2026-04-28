@@ -47,6 +47,8 @@ import {
     type ReplaceTripScheduleRequestDTO,
     type ScheduleDayResponseDTO,
 } from '@/services/trip.service';
+import { suggestionService } from '@/services/suggestion.service';
+import type { PublishCheckResponseDTO } from '@/types/suggestion';
 import type { ApiErrorResponseDTO } from '@/types/api';
 import type { PlaceSuggestion, PlaceType } from '@/types/place';
 import type { ScheduleDay } from '@/types/schedule';
@@ -323,6 +325,15 @@ export default function CreateRoom() {
     >(null);
     const [showLifestyleSubmittedNotice, setShowLifestyleSubmittedNotice] =
         useState(Boolean(routeState?.lifestyleSubmitted));
+
+    const [publishStatus, setPublishStatus] =
+        useState<PublishCheckResponseDTO | null>(null);
+    const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+    const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
+    const [publishTitle, setPublishTitle] = useState('');
+    const [publishDescription, setPublishDescription] = useState('');
+    const [publishSubmitting, setPublishSubmitting] = useState(false);
+    const [publishError, setPublishError] = useState<string | null>(null);
 
     const latestPayloadRef = useRef<ReplaceTripScheduleRequestDTO>({
         items: [],
@@ -722,6 +733,63 @@ export default function CreateRoom() {
         return 'ระบบจะบันทึกอัตโนมัติเมื่อมีการแก้ไข';
     }, [canEdit, saveError, saveStatus]);
 
+    useEffect(() => {
+        if (!id || !isOwner) return;
+        let active = true;
+
+        suggestionService
+            .checkPublishStatus(id)
+            .then((status) => {
+                if (!active) return;
+                setPublishStatus(status);
+            })
+            .catch(() => {
+                /* non-critical — publish status unavailable */
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [id, isOwner]);
+
+    const handlePublish = useCallback(async () => {
+        if (!id) return;
+        setPublishSubmitting(true);
+        setPublishError(null);
+        try {
+            await suggestionService.publishTrip(id, {
+                title: publishTitle.trim() || undefined,
+                description: publishDescription.trim() || undefined,
+            });
+            const updated = await suggestionService.checkPublishStatus(id);
+            setPublishStatus(updated);
+            setPublishDialogOpen(false);
+            setPublishTitle('');
+            setPublishDescription('');
+        } catch (err) {
+            setPublishError(getApiErrorMessage(err, 'Failed to publish trip.'));
+        } finally {
+            setPublishSubmitting(false);
+        }
+    }, [id, publishTitle, publishDescription]);
+
+    const handleUnpublish = useCallback(async () => {
+        if (!id) return;
+        setPublishSubmitting(true);
+        setPublishError(null);
+        try {
+            await suggestionService.unpublishTrip(id);
+            setPublishStatus({ is_published: false });
+            setUnpublishDialogOpen(false);
+        } catch (err) {
+            setPublishError(
+                getApiErrorMessage(err, 'Failed to unpublish trip.'),
+            );
+        } finally {
+            setPublishSubmitting(false);
+        }
+    }, [id]);
+
     const handleShareOpenChange = useCallback((open: boolean) => {
         setShareOpen(open);
         if (!open) return;
@@ -935,6 +1003,30 @@ export default function CreateRoom() {
                         </Button>
                     </PopoverContent>
                 </Popover>
+                {isOwner && publishStatus?.is_published && (
+                    <Button
+                        className="h-auto rounded-md font-semibold bg-emerald-50 text-emerald-700 border-2 border-emerald-300 hover:bg-emerald-100"
+                        onClick={() => {
+                            setPublishError(null);
+                            setUnpublishDialogOpen(true);
+                        }}
+                    >
+                        {t('tripSuggestions.publish.published')}
+                    </Button>
+                )}
+                {isOwner && !publishStatus?.is_published && (
+                    <Button
+                        className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
+                        onClick={() => {
+                            setPublishError(null);
+                            setPublishTitle('');
+                            setPublishDescription('');
+                            setPublishDialogOpen(true);
+                        }}
+                    >
+                        {t('tripSuggestions.publish.publish')}
+                    </Button>
+                )}
                 {isOwner && (
                     <Button
                         className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
@@ -1254,6 +1346,134 @@ export default function CreateRoom() {
                             disabled={leaveSubmitting}
                         >
                             {leaveSubmitting ? 'Leaving...' : 'Leave room'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Publish dialog */}
+            <Dialog
+                open={publishDialogOpen}
+                onOpenChange={(open) => {
+                    if (!publishSubmitting) setPublishDialogOpen(open);
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {t('tripSuggestions.publish.publishTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t('tripSuggestions.publish.publishDescription')}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="pub-title">
+                                {t('tripSuggestions.publish.titleLabel')}
+                            </Label>
+                            <input
+                                id="pub-title"
+                                value={publishTitle}
+                                onChange={(e) =>
+                                    setPublishTitle(e.target.value)
+                                }
+                                placeholder={t(
+                                    'tripSuggestions.publish.titlePlaceholder',
+                                )}
+                                className="border-input h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="pub-desc">
+                                {t('tripSuggestions.publish.descriptionLabel')}
+                            </Label>
+                            <textarea
+                                id="pub-desc"
+                                value={publishDescription}
+                                onChange={(e) =>
+                                    setPublishDescription(e.target.value)
+                                }
+                                rows={3}
+                                placeholder={t(
+                                    'tripSuggestions.publish.descriptionPlaceholder',
+                                )}
+                                className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] resize-none"
+                            />
+                        </div>
+
+                        {publishError && (
+                            <p className="text-sm text-red-600">
+                                {publishError}
+                            </p>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setPublishDialogOpen(false)}
+                            disabled={publishSubmitting}
+                        >
+                            {t('tripSuggestions.publish.cancel')}
+                        </Button>
+                        <Button
+                            onClick={handlePublish}
+                            disabled={publishSubmitting}
+                        >
+                            {publishSubmitting
+                                ? t('tripSuggestions.publish.publishing')
+                                : t(
+                                      'tripSuggestions.publish.confirmPublish',
+                                  )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Unpublish dialog */}
+            <Dialog
+                open={unpublishDialogOpen}
+                onOpenChange={(open) => {
+                    if (!publishSubmitting) setUnpublishDialogOpen(open);
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {t('tripSuggestions.publish.unpublishTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t(
+                                'tripSuggestions.publish.unpublishDescription',
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {publishError && (
+                        <p className="text-sm text-red-600">{publishError}</p>
+                    )}
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setUnpublishDialogOpen(false)}
+                            disabled={publishSubmitting}
+                        >
+                            {t('tripSuggestions.publish.cancel')}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleUnpublish}
+                            disabled={publishSubmitting}
+                        >
+                            {publishSubmitting
+                                ? t('tripSuggestions.publish.unpublishing')
+                                : t(
+                                      'tripSuggestions.publish.confirmUnpublish',
+                                  )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -10,6 +10,8 @@ import CreateRoom from './page/CrateRoom';
 import CreateTripPage from './page/CreateTrip';
 import MyTrips from './page/MyTrips';
 import Settings from './page/Settings';
+import TripSuggestions from './page/TripSuggestions';
+import TripSuggestionDetail from './page/TripSuggestionDetail';
 import MainLayout from '@/components/layout/MainLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import { SettingsProvider } from '@/context/SettingsContext';
@@ -24,6 +26,11 @@ export function App() {
                     <Route element={<MainLayout />}>
                         <Route path="/" element={<Home />} />
                         <Route path="/about" element={<AboutUs />} />
+                        <Route path="/trips" element={<TripSuggestions />} />
+                        <Route
+                            path="/trips/:id"
+                            element={<TripSuggestionDetail />}
+                        />
 
                         <Route element={<ProtectedRoute />}>
                             <Route path="/profile" element={<Profile />} />
