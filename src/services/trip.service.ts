@@ -108,8 +108,36 @@ interface GetScheduleResponseData {
     destination_name: string;
     start_date: string;
     end_date: string;
-    suggestions: RawScheduleItem[];
+    suggestions?: RawScheduleItem[];
     days: RawScheduleDay[];
+}
+
+export interface RescheduleScoreboardItemDTO {
+    user_id: number;
+    username: string;
+    score: number;
+    effective_score: number;
+    times_served: number;
+    deferred_count: number;
+}
+
+export interface RescheduleTripSuccessDTO {
+    trip_id: number;
+    scheduled_count: number;
+    suggestions_count: number;
+    round_count: number;
+    selected_place_ids: string[];
+    scoreboard: RescheduleScoreboardItemDTO[];
+}
+
+export interface RescheduleNotReadyMemberDTO {
+    user_id: number;
+    username: string;
+    lifestyle_id: number | null;
+}
+
+export interface RescheduleConflictDataDTO {
+    not_ready_members: RescheduleNotReadyMemberDTO[];
 }
 
 export interface ReplaceTripScheduleItemDTO {
@@ -210,7 +238,29 @@ export const tripService = {
             };
         };
 
-        const suggestions: PlaceSuggestion[] = data.data.suggestions
+        const dayZeroSuggestions = data.data.days
+            .filter((day) => day.day_number === 0)
+            .flatMap((day) => day.items);
+        const mergedSuggestionsRaw = [
+            ...(data.data.suggestions ?? []),
+            ...dayZeroSuggestions,
+        ];
+
+        const uniqueSuggestionsRaw = mergedSuggestionsRaw.filter(
+            (item, index, arr) => {
+                const key = `${item.trip_schedule_id}:${item.place_id}:${item.place_name}`;
+                return (
+                    index ===
+                    arr.findIndex(
+                        (candidate) =>
+                            `${candidate.trip_schedule_id}:${candidate.place_id}:${candidate.place_name}` ===
+                            key,
+                    )
+                );
+            },
+        );
+
+        const suggestions: PlaceSuggestion[] = uniqueSuggestionsRaw
             .filter((item) => item.place_id !== '')
             .map((item) => ({
                 id: String(item.trip_schedule_id),
@@ -231,6 +281,7 @@ export const tripService = {
             );
         }
         const days: ScheduleDayResponseDTO[] = [...data.data.days]
+            .filter((day) => day.day_number > 0)
             .sort((a, b) => a.day_number - b.day_number)
             .map((day) => {
                 const d = new Date(startDate);
@@ -257,6 +308,18 @@ export const tripService = {
         >(`${apiBaseUrl}/trip/${tripId}/schedule`, dto, {
             headers: authHeader(),
         });
+
+        return data.data;
+    },
+
+    async rescheduleTrip(tripId: string): Promise<RescheduleTripSuccessDTO> {
+        const { data } = await axios.post<ApiResponseDTO<RescheduleTripSuccessDTO>>(
+            `${apiBaseUrl}/trip/${tripId}/reschedule`,
+            {},
+            {
+                headers: authHeader(),
+            },
+        );
 
         return data.data;
     },
