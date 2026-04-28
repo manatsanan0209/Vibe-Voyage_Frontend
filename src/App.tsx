@@ -10,20 +10,29 @@ import CreateRoom from './page/CrateRoom';
 import CreateTripPage from './page/CreateTrip';
 import MyTrips from './page/MyTrips';
 import Settings from './page/Settings';
+import TripSuggestions from './page/TripSuggestions';
+import TripSuggestionDetail from './page/TripSuggestionDetail';
 import MainLayout from '@/components/layout/MainLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import JoinTripLifestyle from '@/page/JoinTripLifestyle';
+import { Toaster } from '@/components/ui/sonner';
 
 export function App() {
     return (
         <AuthProvider>
             <SettingsProvider>
+                <Toaster />
                 <Routes>
                     <Route element={<MainLayout />}>
                         <Route path="/" element={<Home />} />
                         <Route path="/about" element={<AboutUs />} />
+                        <Route path="/trips" element={<TripSuggestions />} />
+                        <Route
+                            path="/trips/:id"
+                            element={<TripSuggestionDetail />}
+                        />
 
                         <Route element={<ProtectedRoute />}>
                             <Route path="/profile" element={<Profile />} />

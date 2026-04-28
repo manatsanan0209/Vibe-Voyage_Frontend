@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import {
     Loader2,
     Monitor,
@@ -16,6 +16,7 @@ import {
     Activity,
     MapPin,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,7 @@ function SettingRow({
 }: {
     label: string;
     description?: string;
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     return (
         <div className="flex items-center justify-between gap-4 py-4">
@@ -98,9 +99,9 @@ function SectionCard({
     title,
     children,
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     title: string;
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     return (
         <section className="rounded-2xl border border-border bg-white px-6 py-5">
@@ -168,23 +169,16 @@ export default function Settings() {
         useSettings();
     const { t } = useI18n();
 
-    const [toast, setToast] = useState<{
-        text: string;
-        type: 'success' | 'error';
-    } | null>(null);
-
-    useEffect(() => {
-        if (!toast) return;
-        const id = window.setTimeout(() => setToast(null), 3500);
-        return () => window.clearTimeout(id);
-    }, [toast]);
-
     async function handleSave() {
         try {
             await saveSettings();
-            setToast({ text: t('settings.saveSuccess'), type: 'success' });
+            toast.success(t('settings.saveSuccess'), {
+                icon: <CheckCircle2 className="size-4" />,
+            });
         } catch {
-            setToast({ text: t('settings.saveFail'), type: 'error' });
+            toast.error(t('settings.saveFail'), {
+                icon: <XCircle className="size-4" />,
+            });
         }
     }
 
@@ -194,25 +188,6 @@ export default function Settings() {
 
     return (
         <main className="flex flex-col gap-6 sm:gap-8 px-4 sm:px-8 pb-12">
-            {/* Toast */}
-            {toast && (
-                <div
-                    className={cn(
-                        'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-lg',
-                        toast.type === 'success'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                            : 'border-red-200 bg-red-50 text-red-700',
-                    )}
-                >
-                    {toast.type === 'success' ? (
-                        <CheckCircle2 className="size-4 shrink-0" />
-                    ) : (
-                        <XCircle className="size-4 shrink-0" />
-                    )}
-                    {toast.text}
-                </div>
-            )}
-
             <div className="w-full rounded-4xl bg-muted px-4 sm:px-8 py-6 sm:py-8">
                 <h1 className="mb-6 text-2xl font-bold text-primary">
                     {t('settings.title')}
