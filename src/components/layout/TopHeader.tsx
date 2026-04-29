@@ -14,14 +14,17 @@ export default function TopHeader() {
             <SidebarTrigger className="md:hidden" />
             <div className="ml-auto flex items-center gap-4">
                 {isAuthenticated ? (
-                    <>
+                    <Link
+                        to="/profile"
+                        className="flex items-center gap-4 hover:opacity-75 transition-opacity"
+                    >
                         <div className="size-9.5 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                             <User className="size-5 text-gray-500" />
                         </div>
                         <span className="font-extrabold text-sm text-primary">
                             {t('auth.hi')}, {user?.username}
                         </span>
-                    </>
+                    </Link>
                 ) : (
                     <>
                         <Button
