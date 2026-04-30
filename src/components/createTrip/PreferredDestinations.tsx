@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { MapPinPlus, X } from 'lucide-react';
 import {
     Command,
     CommandEmpty,
@@ -79,18 +79,17 @@ export function PreferredDestinations({
 
     return (
         <div className="flex flex-col gap-3">
-            {/* Header row */}
             <div className="flex items-center gap-2">
                 <Popover open={open} onOpenChange={handleOpenChange}>
                     <PopoverTrigger asChild>
                         <button
                             type="button"
-                            className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
                         >
-                            <Plus size={18} />
+                            <MapPinPlus size={16} />
                         </button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-96" align="start">
+                    <PopoverContent className="w-96 rounded-2xl border-white/70 p-0" align="start">
                         <Command shouldFilter={false}>
                             <CommandInput
                                 placeholder="Type a place name and press 'Enter' to search"
@@ -137,27 +136,26 @@ export function PreferredDestinations({
                     </PopoverContent>
                 </Popover>
 
-                <p className="text-base font-semibold">
+                <p className="text-sm font-semibold">
                     Add preferred destination
                 </p>
-                <span className="text-accent-foreground font-light text-sm ">
+                <span className="text-xs font-medium text-muted-foreground">
                     * not required
                 </span>
             </div>
 
-            {/* Selected place chips */}
             {selected.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                     {selected.map((place) => (
                         <div
                             key={place.value}
-                            className="flex items-center gap-3 border-ring rounded-md px-3 py-1.5 bg-white border-2"
+                            className="flex items-center gap-2 rounded-full border border-primary/15 bg-white px-3 py-1.5 shadow-sm"
                         >
-                            <span className="text-sm">{place.label}</span>
+                            <span className="text-sm text-foreground">{place.label}</span>
                             <button
                                 type="button"
                                 onClick={() => handleRemove(place.value)}
-                                className="text-accent-foreground hover:text-accent-foreground/70 transition-colors"
+                                className="text-muted-foreground transition-colors hover:text-foreground"
                             >
                                 <X size={14} />
                             </button>

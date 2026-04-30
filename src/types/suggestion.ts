@@ -18,6 +18,7 @@ export interface TripSuggestionSummaryDTO {
     publisher: PublisherDTO;
     is_liked: boolean;
     is_bookmarked: boolean;
+    viewer_role: 'owner' | 'member' | null;
     published_at: string;
 }
 
