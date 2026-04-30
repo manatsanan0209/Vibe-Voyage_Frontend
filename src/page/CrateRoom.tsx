@@ -47,8 +47,6 @@ import {
     type ReplaceTripScheduleItemDTO,
     type ReplaceTripScheduleRequestDTO,
     type RescheduleConflictDataDTO,
-    type RescheduleNotReadyMemberDTO,
-    type RescheduleTripSuccessDTO,
     type ScheduleDayResponseDTO,
 } from '@/services/trip.service';
 import { suggestionService } from '@/services/suggestion.service';
@@ -67,7 +65,6 @@ const POLLING_READINESS_TIMEOUT_MS = 90000;
 const POLLING_MAX_BACKOFF_MS = 8000;
 const DEFAULT_UNSCHEDULED_TIME = '00:00';
 
-type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'retrying';
 type ScheduleReadinessStatus =
     | 'initial-loading'
     | 'generating'
@@ -78,17 +75,14 @@ type GroupRescheduleStatus =
     | 'loading_members'
     | 'not_owner'
     | 'waiting_for_member_analysis'
-    | 'ready_to_reschedule'
-    | 'rescheduling'
-    | 'reschedule_success'
-    | 'reschedule_conflict'
-    | 'reschedule_error';
+    | 'ready_to_reschedule';
 type GroupRescheduleRequestStatus =
     | 'idle'
     | 'rescheduling'
     | 'reschedule_success'
     | 'reschedule_conflict'
     | 'reschedule_error';
+type ToastType = 'success' | 'error' | 'info';
 
 type RoomRouteState = {
     joinedRole?: number;
@@ -378,33 +372,19 @@ export default function CreateRoom() {
         null,
     );
     const [inviteHistoryLoaded, setInviteHistoryLoaded] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<AutoSaveStatus>('idle');
-    const [saveError, setSaveError] = useState<string | null>(null);
     const [scheduleReadinessStatus, setScheduleReadinessStatus] =
         useState<ScheduleReadinessStatus>('initial-loading');
-    const [scheduleReadinessMessage, setScheduleReadinessMessage] = useState<
-        string | null
-    >(null);
-    const [showLifestyleSubmittedNotice, setShowLifestyleSubmittedNotice] =
-        useState(Boolean(routeState?.lifestyleSubmitted));
-    const [rescheduleSubmissions, setRescheduleSubmissions] = useState<
-        RoomMemberLifestyleSubmission[]
-    >([]);
     const [rescheduleWaitingMembers, setRescheduleWaitingMembers] = useState<
         RoomMemberLifestyleSubmission[]
     >([]);
-    const [rescheduleConflictMembers, setRescheduleConflictMembers] = useState<
-        RescheduleNotReadyMemberDTO[]
-    >([]);
-    const [rescheduleSummary, setRescheduleSummary] =
-        useState<RescheduleTripSuccessDTO | null>(null);
     const [rescheduleBaseStatus, setRescheduleBaseStatus] =
         useState<GroupRescheduleStatus>('loading_members');
     const [rescheduleRequestStatus, setRescheduleRequestStatus] =
         useState<GroupRescheduleRequestStatus>('idle');
-    const [rescheduleErrorMessage, setRescheduleErrorMessage] = useState<
-        string | null
-    >(null);
+    const [toast, setToast] = useState<{
+        text: string;
+        type: ToastType;
+    } | null>(null);
 
     const [publishStatus, setPublishStatus] =
         useState<PublishCheckResponseDTO | null>(null);
@@ -429,6 +409,8 @@ export default function CreateRoom() {
     const pollFailureStreakRef = useRef(0);
     const isReschedulingRef = useRef(false);
     const lifestyleInvalidationEmittedRef = useRef(false);
+    const prevScheduleReadinessStatusRef =
+        useRef<ScheduleReadinessStatus>('initial-loading');
     const scheduleReadinessRef = useRef({
         enabled: isFromCreateTrip,
         startedAt:
@@ -436,14 +418,26 @@ export default function CreateRoom() {
                 ? routeState.createdAt
                 : Date.now(),
     });
-    const saveScheduleRef = useRef<
-        (mode: 'autosave' | 'retry') => Promise<void>
-    >(async () => {});
+    const saveScheduleRef = useRef<() => Promise<void>>(async () => {});
 
     useEffect(() => {
         setOpen(false);
         return () => setOpen(true);
     }, [setOpen]);
+
+    useEffect(() => {
+        if (!toast) return;
+        const timeoutId = window.setTimeout(() => {
+            setToast(null);
+        }, 3200);
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [toast]);
+
+    const showToast = useCallback((text: string, type: ToastType = 'info') => {
+        setToast({ text, type });
+    }, []);
 
     const applyServerSnapshot = useCallback(
         (suggestions: PlaceSuggestion[], days: ScheduleDayResponseDTO[]) => {
@@ -478,13 +472,11 @@ export default function CreateRoom() {
         if (!roomIdForSubmissions) return;
 
         setRescheduleBaseStatus('loading_members');
-        setRescheduleErrorMessage(null);
 
         try {
             const submissions = await roomService.getMembersLifestyleSubmissions(
                 roomIdForSubmissions,
             );
-            setRescheduleSubmissions(submissions);
             const next = buildRescheduleBaseStatus(currentRole, submissions);
             setRescheduleBaseStatus(next.status);
             setRescheduleWaitingMembers(next.waitingMembers);
@@ -500,12 +492,6 @@ export default function CreateRoom() {
                     : 'not_owner';
             setRescheduleBaseStatus(fallbackStatus);
             setRescheduleWaitingMembers([]);
-            setRescheduleErrorMessage(
-                getApiErrorMessage(
-                    err,
-                    'Unable to load member lifestyle readiness.',
-                ),
-            );
         }
     }, [currentRole, handleUnauthorized, id, shareRoomId]);
 
@@ -516,7 +502,7 @@ export default function CreateRoom() {
         setLoading(true);
         setError(null);
         setScheduleReadinessStatus('initial-loading');
-        setScheduleReadinessMessage(null);
+        prevScheduleReadinessStatusRef.current = 'initial-loading';
         pollFailureStreakRef.current = 0;
         nextPollAtRef.current = 0;
         scheduleReadinessRef.current = {
@@ -532,26 +518,19 @@ export default function CreateRoom() {
             .then(({ suggestions, days }) => {
                 applyServerSnapshot(suggestions, days);
                 initializedRef.current = true;
-                setSaveStatus('saved');
-                setSaveError(null);
 
                 const ready = isScheduleReady(suggestions, days);
                 if (scheduleReadinessRef.current.enabled && !ready) {
                     setScheduleReadinessStatus('generating');
-                    setScheduleReadinessMessage(
-                        'สร้างทริปเรียบร้อยแล้ว ระบบกำลังเตรียม AI suggestions ให้คุณ',
-                    );
                 } else {
                     scheduleReadinessRef.current.enabled = false;
                     setScheduleReadinessStatus('ready');
-                    setScheduleReadinessMessage(null);
                 }
             })
             .catch((err) => {
                 console.error('[CreateRoom] Failed to load schedule:', err);
                 setError('ไม่สามารถโหลดข้อมูลตารางเดินทางได้');
                 setScheduleReadinessStatus('poll-error');
-                setScheduleReadinessMessage('ไม่สามารถโหลดตารางเดินทางได้');
             })
             .finally(() => setLoading(false));
     }, [applyServerSnapshot, id, isFromCreateTrip, routeState?.createdAt]);
@@ -621,26 +600,10 @@ export default function CreateRoom() {
 
     const isOwner = currentRole === 1;
     const canEdit = currentRole !== 3;
-    const rescheduleState: GroupRescheduleStatus = useMemo(() => {
-        if (rescheduleBaseStatus === 'loading_members') return 'loading_members';
-        if (rescheduleRequestStatus === 'rescheduling') return 'rescheduling';
-        if (rescheduleRequestStatus === 'reschedule_success')
-            return 'reschedule_success';
-        if (rescheduleRequestStatus === 'reschedule_conflict')
-            return 'reschedule_conflict';
-        if (rescheduleRequestStatus === 'reschedule_error')
-            return 'reschedule_error';
-        return rescheduleBaseStatus;
-    }, [rescheduleBaseStatus, rescheduleRequestStatus]);
-    const canTriggerReschedule =
-        rescheduleBaseStatus === 'ready_to_reschedule' &&
-        rescheduleRequestStatus !== 'rescheduling';
     const waitingMemberNames = rescheduleWaitingMembers
         .map((member) => member.username)
         .join(', ');
-    const conflictMemberNames = rescheduleConflictMembers
-        .map((member) => member.username)
-        .join(', ');
+    const shouldShowStatusLogs = false;
 
     const replacePayload = useMemo(
         () => buildReplaceSchedulePayload(places, schedule),
@@ -657,20 +620,17 @@ export default function CreateRoom() {
     }, [replacePayload, replacePayloadHash]);
 
     const saveSchedule = useCallback(
-        async (mode: 'autosave' | 'retry') => {
+        async () => {
             if (!id || !canEdit) return;
             if (isReschedulingRef.current) return;
             if (saveInFlightRef.current) return;
             if (latestHashRef.current === lastSyncedHashRef.current) return;
 
             saveInFlightRef.current = true;
-            setSaveStatus(mode === 'retry' ? 'retrying' : 'saving');
 
             try {
                 await tripService.replaceSchedule(id, latestPayloadRef.current);
                 lastSyncedHashRef.current = latestHashRef.current;
-                setSaveStatus('saved');
-                setSaveError(null);
                 emitCacheInvalidation({
                     key: 'trip-schedule',
                     tripId: id,
@@ -680,17 +640,12 @@ export default function CreateRoom() {
                     window.clearTimeout(retryTimerRef.current);
                     retryTimerRef.current = null;
                 }
-            } catch (err) {
-                setSaveStatus('retrying');
-                setSaveError(
-                    getApiErrorMessage(err, 'ไม่สามารถบันทึกแผนการเดินทางได้'),
-                );
-
+            } catch {
                 if (retryTimerRef.current != null) {
                     window.clearTimeout(retryTimerRef.current);
                 }
                 retryTimerRef.current = window.setTimeout(() => {
-                    void saveScheduleRef.current('retry');
+                    void saveScheduleRef.current();
                 }, AUTOSAVE_RETRY_MS);
             } finally {
                 saveInFlightRef.current = false;
@@ -710,7 +665,7 @@ export default function CreateRoom() {
         if (replacePayloadHash === lastSyncedHashRef.current) return;
 
         const timeoutId = window.setTimeout(() => {
-            void saveSchedule('autosave');
+            void saveSchedule();
         }, AUTOSAVE_DEBOUNCE_MS);
 
         return () => {
@@ -758,8 +713,6 @@ export default function CreateRoom() {
                     latestPayloadRef.current = remotePayload;
                     latestHashRef.current = remoteHash;
                     lastSyncedHashRef.current = remoteHash;
-                    setSaveStatus('saved');
-                    setSaveError(null);
 
                     requestAnimationFrame(() => {
                         suppressAutosaveRef.current = false;
@@ -773,18 +726,11 @@ export default function CreateRoom() {
                     if (ready) {
                         scheduleReadinessRef.current.enabled = false;
                         setScheduleReadinessStatus('ready');
-                        setScheduleReadinessMessage(null);
                     } else if (elapsed >= POLLING_READINESS_TIMEOUT_MS) {
                         scheduleReadinessRef.current.enabled = false;
                         setScheduleReadinessStatus('timeout');
-                        setScheduleReadinessMessage(
-                            'AI suggestions ยังเตรียมไม่เสร็จ คุณใช้งานหน้านี้ต่อได้และกดรีเฟรชภายหลัง',
-                        );
                     } else {
                         setScheduleReadinessStatus('generating');
-                        setScheduleReadinessMessage(
-                            'Trip created, scheduling is preparing...',
-                        );
                     }
                 }
 
@@ -806,9 +752,6 @@ export default function CreateRoom() {
 
                 if (scheduleReadinessRef.current.enabled) {
                     setScheduleReadinessStatus('poll-error');
-                    setScheduleReadinessMessage(
-                        'เชื่อมต่อไม่เสถียร ระบบกำลังลองดึง AI suggestions ใหม่',
-                    );
                 }
             } finally {
                 pollInFlightRef.current = false;
@@ -843,7 +786,10 @@ export default function CreateRoom() {
 
     useEffect(() => {
         if (!routeState?.lifestyleSubmitted) return;
-        setShowLifestyleSubmittedNotice(true);
+        showToast(
+            'ส่ง Lifestyle สำเร็จแล้ว ระบบกำลังรอวิเคราะห์เพื่อใช้ในการรีสเกดูล',
+            'success',
+        );
 
         if (shareRoomId && !lifestyleInvalidationEmittedRef.current) {
             emitCacheInvalidation({
@@ -853,55 +799,71 @@ export default function CreateRoom() {
             });
             lifestyleInvalidationEmittedRef.current = true;
         }
+    }, [routeState?.lifestyleSubmitted, shareRoomId, showToast]);
 
-        const timeoutId = window.setTimeout(() => {
-            setShowLifestyleSubmittedNotice(false);
-        }, 8000);
+    useEffect(() => {
+        const previous = prevScheduleReadinessStatusRef.current;
+        if (previous === scheduleReadinessStatus) return;
 
-        return () => {
-            window.clearTimeout(timeoutId);
-        };
-    }, [routeState?.lifestyleSubmitted, shareRoomId]);
+        if (scheduleReadinessStatus === 'generating') {
+            showToast('กำลังเตรียมตารางทริปและ AI suggestions...', 'info');
+        } else if (scheduleReadinessStatus === 'timeout') {
+            showToast(
+                'AI suggestions ยังเตรียมไม่เสร็จ สามารถใช้งานหน้านี้ต่อได้',
+                'error',
+            );
+        } else if (scheduleReadinessStatus === 'poll-error') {
+            showToast('เชื่อมต่อไม่เสถียร ระบบจะลองดึงตารางให้อัตโนมัติ', 'error');
+        } else if (
+            scheduleReadinessStatus === 'ready' &&
+            previous === 'generating'
+        ) {
+            showToast('ตารางทริปพร้อมใช้งานแล้ว', 'success');
+        }
 
-    const handleRetrySchedulePolling = useCallback(() => {
-        if (!id) return;
-
-        scheduleReadinessRef.current = {
-            enabled: true,
-            startedAt: Date.now(),
-        };
-        pollFailureStreakRef.current = 0;
-        nextPollAtRef.current = 0;
-        setScheduleReadinessStatus('generating');
-        setScheduleReadinessMessage(
-            'กำลังขอ AI suggestions ใหม่ กรุณารอสักครู่',
-        );
-
-        emitCacheInvalidation({
-            key: 'trip-schedule',
-            tripId: id,
-            reason: 'manual-retry',
-        });
-    }, [id]);
+        prevScheduleReadinessStatusRef.current = scheduleReadinessStatus;
+    }, [scheduleReadinessStatus, showToast]);
 
     const handleReschedule = useCallback(async () => {
-        if (!id || !canTriggerReschedule) return;
+        if (!id) return;
+        if (rescheduleRequestStatus === 'rescheduling') return;
+
+        if (rescheduleBaseStatus === 'loading_members') {
+            showToast('กำลังตรวจสอบความพร้อมของสมาชิก กรุณาลองอีกครั้ง', 'info');
+            return;
+        }
+
+        if (rescheduleBaseStatus === 'not_owner') {
+            showToast('Only the room owner can re-schedule this trip.', 'error');
+            return;
+        }
+
+        if (rescheduleBaseStatus === 'waiting_for_member_analysis') {
+            if (waitingMemberNames) {
+                showToast(
+                    `ยังรอวิเคราะห์ Lifestyle ของ: ${waitingMemberNames}`,
+                    'info',
+                );
+            } else {
+                showToast(
+                    'ยังรอสมาชิกส่งและวิเคราะห์ Lifestyle ก่อน re-schedule',
+                    'info',
+                );
+            }
+            return;
+        }
 
         isReschedulingRef.current = true;
         setRescheduleRequestStatus('rescheduling');
-        setRescheduleConflictMembers([]);
-        setRescheduleErrorMessage(null);
+        showToast('กำลัง re-schedule ทริป...', 'info');
 
         try {
-            const summary = await tripService.rescheduleTrip(id);
-            setRescheduleSummary(summary);
+            await tripService.rescheduleTrip(id);
             setRescheduleRequestStatus('reschedule_success');
 
             const { suggestions, days } = await tripService.getSchedule(id);
             applyServerSnapshot(suggestions, days);
             initializedRef.current = true;
-            setSaveStatus('saved');
-            setSaveError(null);
 
             emitCacheInvalidation({
                 key: 'trip-schedule',
@@ -910,6 +872,7 @@ export default function CreateRoom() {
             });
 
             await refreshRescheduleReadiness();
+            showToast('Re-schedule เสร็จเรียบร้อยแล้ว', 'success');
         } catch (err) {
             if (
                 axios.isAxiosError<ApiErrorResponseDTO<RescheduleConflictDataDTO>>(
@@ -927,8 +890,9 @@ export default function CreateRoom() {
                 if (statusCode === 403) {
                     setRescheduleRequestStatus('idle');
                     setRescheduleBaseStatus('not_owner');
-                    setRescheduleErrorMessage(
+                    showToast(
                         'Only the room owner can re-schedule this trip.',
+                        'error',
                     );
                     return;
                 }
@@ -938,50 +902,40 @@ export default function CreateRoom() {
                     errorBody?.error === 'analysis_incomplete'
                 ) {
                     setRescheduleRequestStatus('reschedule_conflict');
-                    setRescheduleConflictMembers(
-                        errorBody?.data?.not_ready_members ?? [],
-                    );
-                    setRescheduleErrorMessage(
-                        'Re-schedule is blocked because some members are still being analyzed.',
-                    );
                     await refreshRescheduleReadiness();
+                    const pendingNames = (
+                        errorBody?.data?.not_ready_members ?? []
+                    )
+                        .map((member) => member.username)
+                        .join(', ');
+                    showToast(
+                        pendingNames
+                            ? `Re-schedule ไม่สำเร็จ: ยังรอวิเคราะห์สมาชิก ${pendingNames}`
+                            : 'Re-schedule ไม่สำเร็จ เพราะยังมีสมาชิกที่วิเคราะห์ไม่เสร็จ',
+                        'error',
+                    );
                     return;
                 }
             }
 
             setRescheduleRequestStatus('reschedule_error');
-            setRescheduleErrorMessage(
-                getApiErrorMessage(err, 'Failed to re-schedule trip. Please retry.'),
+            const errorMessage = getApiErrorMessage(
+                err,
+                'Failed to re-schedule trip. Please retry.',
             );
+            showToast(errorMessage, 'error');
         } finally {
             isReschedulingRef.current = false;
         }
     }, [
         applyServerSnapshot,
-        canTriggerReschedule,
         handleUnauthorized,
         id,
         refreshRescheduleReadiness,
+        rescheduleBaseStatus,
         rescheduleRequestStatus,
+        showToast,
     ]);
-
-    const autoSaveStatusLabel = useMemo(() => {
-        if (!canEdit) return '';
-
-        if (saveStatus === 'saving') {
-            return 'กำลังบันทึกแผนอัตโนมัติ...';
-        }
-        if (saveStatus === 'retrying') {
-            return saveError
-                ? `บันทึกไม่สำเร็จ กำลังลองใหม่... (${saveError})`
-                : 'กำลังลองบันทึกใหม่อัตโนมัติ...';
-        }
-        if (saveStatus === 'saved') {
-            return 'บันทึกแผนอัตโนมัติล่าสุดเรียบร้อย';
-        }
-
-        return 'ระบบจะบันทึกอัตโนมัติเมื่อมีการแก้ไข';
-    }, [canEdit, saveError, saveStatus]);
 
     useEffect(() => {
         if (!id || !isOwner) return;
@@ -1039,45 +993,6 @@ export default function CreateRoom() {
             setPublishSubmitting(false);
         }
     }, [id]);
-
-    const rescheduleStatusMessage = useMemo(() => {
-        if (rescheduleState === 'loading_members') {
-            return 'Loading member lifestyle readiness...';
-        }
-        if (rescheduleState === 'not_owner') {
-            return 'Only the room owner can re-schedule this trip.';
-        }
-        if (rescheduleState === 'waiting_for_member_analysis') {
-            if (rescheduleWaitingMembers.length > 0) {
-                return `Waiting for lifestyle analysis: ${waitingMemberNames}`;
-            }
-            return 'Waiting for at least one member lifestyle to be submitted and analyzed.';
-        }
-        if (rescheduleState === 'ready_to_reschedule') {
-            return 'All submitted lifestyles are analyzed. You can re-schedule now.';
-        }
-        if (rescheduleState === 'rescheduling') {
-            return 'Re-scheduling group trip...';
-        }
-        if (rescheduleState === 'reschedule_conflict') {
-            return (
-                rescheduleErrorMessage ??
-                'Re-schedule is blocked because some members are still being analyzed.'
-            );
-        }
-        if (rescheduleState === 'reschedule_error') {
-            return (
-                rescheduleErrorMessage ??
-                'Unable to re-schedule right now. Please try again.'
-            );
-        }
-        return 'Group schedule updated successfully.';
-    }, [
-        rescheduleErrorMessage,
-        rescheduleState,
-        rescheduleWaitingMembers.length,
-        waitingMemberNames,
-    ]);
 
     const handleShareOpenChange = useCallback((open: boolean) => {
         setShareOpen(open);
@@ -1268,12 +1183,21 @@ export default function CreateRoom() {
 
     return (
         <div className="h-[calc(100dvh-6rem)] w-full flex flex-col gap-6 overflow-hidden">
+            {toast && (
+                <div
+                    className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${
+                        toast.type === 'success'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                            : toast.type === 'error'
+                              ? 'border-red-200 bg-red-50 text-red-700'
+                              : 'border-sky-200 bg-sky-50 text-sky-900'
+                    }`}
+                >
+                    {toast.text}
+                </div>
+            )}
+
             <div className="flex flex-row items-end justify-end gap-6 pr-6 shrink-0">
-                {canEdit && (
-                    <p className="text-sm text-foreground/70 mr-auto px-6">
-                        {autoSaveStatusLabel}
-                    </p>
-                )}
                 <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
                     <PopoverTrigger asChild>
                         <Button className="h-auto rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-transparent">
@@ -1318,6 +1242,20 @@ export default function CreateRoom() {
                 )}
                 {isOwner && (
                     <Button
+                        type="button"
+                        onClick={handleReschedule}
+                        disabled={
+                            rescheduleRequestStatus === 'rescheduling' ||
+                            rescheduleBaseStatus === 'loading_members'
+                        }
+                    >
+                        {rescheduleRequestStatus === 'rescheduling'
+                            ? 'Re-scheduling...'
+                            : 'Re-schedule'}
+                    </Button>
+                )}
+                {isOwner && (
+                    <Button
                         className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
                         onClick={() => handleShareOpenChange(true)}
                     >
@@ -1333,149 +1271,20 @@ export default function CreateRoom() {
                 </p>
             )}
 
-            <div className="mx-6 rounded-lg border border-foreground/15 bg-muted/40 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <p className="text-sm font-semibold text-primary">
-                            Group Re-scheduling
-                        </p>
-                        <p className="text-sm text-foreground/80">
-                            {rescheduleStatusMessage}
-                        </p>
-                        <p className="text-xs text-foreground/55">
-                            Members checked: {rescheduleSubmissions.length}
-                        </p>
-                    </div>
-                    <Button
-                        type="button"
-                        onClick={handleReschedule}
-                        disabled={!canTriggerReschedule}
-                    >
-                        {rescheduleRequestStatus === 'rescheduling'
-                            ? 'Re-scheduling...'
-                            : 'Re-schedule'}
-                    </Button>
-                </div>
-
-                {rescheduleState === 'reschedule_conflict' &&
-                    rescheduleConflictMembers.length > 0 && (
-                        <p className="mt-2 text-sm text-amber-700">
-                            Pending members: {conflictMemberNames}
-                        </p>
-                    )}
-
-                {rescheduleState === 'waiting_for_member_analysis' &&
-                    rescheduleWaitingMembers.length > 0 && (
-                        <p className="mt-2 text-sm text-amber-700">
-                            Pending members: {waitingMemberNames}
-                        </p>
-                    )}
-
-                {rescheduleErrorMessage &&
-                    rescheduleState !== 'reschedule_conflict' && (
-                        <p className="mt-2 text-sm text-red-600">
-                            {rescheduleErrorMessage}
-                        </p>
-                    )}
-            </div>
-
-            {rescheduleSummary && (
-                <div className="mx-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-                    <p className="text-sm font-semibold text-emerald-900">
-                        Fairness Summary
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-emerald-800">
-                        <span>Scheduled: {rescheduleSummary.scheduled_count}</span>
-                        <span>Rounds: {rescheduleSummary.round_count}</span>
-                        <span>Suggestions: {rescheduleSummary.suggestions_count}</span>
-                    </div>
-
-                    <div className="mt-3 overflow-x-auto rounded-md border border-emerald-200 bg-white">
-                        <table className="w-full text-sm">
-                            <thead className="bg-emerald-100/70 text-emerald-900">
-                                <tr>
-                                    <th className="px-3 py-2 text-left font-semibold">
-                                        Member
-                                    </th>
-                                    <th className="px-3 py-2 text-left font-semibold">
-                                        Score
-                                    </th>
-                                    <th className="px-3 py-2 text-left font-semibold">
-                                        Effective Score
-                                    </th>
-                                    <th className="px-3 py-2 text-left font-semibold">
-                                        Times Served
-                                    </th>
-                                    <th className="px-3 py-2 text-left font-semibold">
-                                        Deferred
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rescheduleSummary.scoreboard.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            className="px-3 py-3 text-emerald-700"
-                                            colSpan={5}
-                                        >
-                                            No fairness rows returned.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    rescheduleSummary.scoreboard.map((row) => (
-                                        <tr
-                                            key={row.user_id}
-                                            className="border-t border-emerald-100"
-                                        >
-                                            <td className="px-3 py-2">
-                                                {row.username}
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                {row.score}
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                {row.effective_score}
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                {row.times_served}
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                {row.deferred_count}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {showLifestyleSubmittedNotice && (
+            {shouldShowStatusLogs && (
                 <div className="mx-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     ส่ง Lifestyle สำเร็จแล้ว ข้อมูลสมาชิกถูกอัปเดตเรียบร้อย
                 </div>
             )}
 
-            {scheduleReadinessStatus === 'generating' && (
-                <div className="mx-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-                    {scheduleReadinessMessage ||
-                        'Trip created, scheduling is preparing...'}
-                </div>
-            )}
-
-            {(scheduleReadinessStatus === 'timeout' ||
-                scheduleReadinessStatus === 'poll-error') && (
+            {shouldShowStatusLogs && (
                 <div className="mx-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3">
-                    <span>
-                        {scheduleReadinessMessage ||
-                            'AI suggestions are still preparing.'}
-                    </span>
+                    <span>AI suggestions are still preparing.</span>
                     <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={handleRetrySchedulePolling}
+                        onClick={() => void 0}
                     >
                         รีเฟรชตาราง
                     </Button>

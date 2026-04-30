@@ -1,7 +1,7 @@
 import { Heart, Bookmark, Eye, MapPin, Calendar } from 'lucide-react';
+import { differenceInDays, parseISO } from 'date-fns';
 import type { TripSuggestionSummaryDTO } from '@/types/suggestion';
 import { useI18n } from '@/hooks/useI18n';
-import { differenceInDays, parseISO } from 'date-fns';
 
 const FALLBACK_IMAGE = 'https://picsum.photos/seed/trip-suggest/400/240';
 const FALLBACK_AVATAR = 'https://picsum.photos/seed/avatar/40/40';
@@ -39,10 +39,18 @@ export default function SuggestionCard({
         onBookmark(trip.published_trip_id);
     }
 
+    function handleCardKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        onClick(trip.published_trip_id);
+    }
+
     return (
-        <button
-            type="button"
+        <div
+            role="button"
+            tabIndex={0}
             onClick={() => onClick(trip.published_trip_id)}
+            onKeyDown={handleCardKeyDown}
             className="w-full rounded-xl border border-border bg-card text-card-foreground overflow-hidden flex flex-col text-left cursor-pointer hover:shadow-md hover:border-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
             {/* Cover image */}
@@ -107,7 +115,9 @@ export default function SuggestionCard({
                     {/* Publisher */}
                     <div className="flex items-center gap-1.5 min-w-0">
                         <img
-                            src={trip.publisher.profile_image || FALLBACK_AVATAR}
+                            src={
+                                trip.publisher.profile_image || FALLBACK_AVATAR
+                            }
                             alt={trip.publisher.username}
                             className="size-5 rounded-full object-cover shrink-0"
                         />
@@ -137,6 +147,6 @@ export default function SuggestionCard({
                     </button>
                 </div>
             </div>
-        </button>
+        </div>
     );
 }

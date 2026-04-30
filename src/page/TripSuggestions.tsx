@@ -6,12 +6,26 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import SuggestionCard from '@/components/tripSuggestions/SuggestionCard';
 import { suggestionService } from '@/services/suggestion.service';
-import { roomService } from '@/services/room.service';
-import type { TripSuggestionSummaryDTO } from '@/types/suggestion';
+import type {
+    TripSuggestionFeedResponseDTO,
+    TripSuggestionSummaryDTO,
+} from '@/types/suggestion';
 import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/context/AuthContext';
 
 const PAGE_LIMIT = 20;
+let initialFeedRequest: Promise<TripSuggestionFeedResponseDTO> | null = null;
+
+function getInitialFeedOnce() {
+    if (!initialFeedRequest) {
+        initialFeedRequest = suggestionService
+            .getFeed(1, PAGE_LIMIT)
+            .finally(() => {
+                initialFeedRequest = null;
+            });
+    }
+    return initialFeedRequest;
+}
 
 export default function TripSuggestions() {
     const navigate = useNavigate();
@@ -25,10 +39,6 @@ export default function TripSuggestions() {
     const [total, setTotal] = useState(0);
     const [loadingMore, setLoadingMore] = useState(false);
 
-    const [viewerRoleByTripId, setViewerRoleByTripId] = useState<
-        Record<number, 'owner' | 'member'>
-    >({});
-
     const [likeLoadingIds, setLikeLoadingIds] = useState<Set<number>>(
         new Set(),
     );
@@ -41,8 +51,7 @@ export default function TripSuggestions() {
         setLoading(true);
         setError(null);
 
-        suggestionService
-            .getFeed(1, PAGE_LIMIT)
+        getInitialFeedOnce()
             .then((res) => {
                 if (!active) return;
                 setTrips(res.trips);
@@ -70,37 +79,6 @@ export default function TripSuggestions() {
             active = false;
         };
     }, []);
-
-    useEffect(() => {
-        if (!isAuthenticated || !user) {
-            setViewerRoleByTripId({});
-            return;
-        }
-
-        let active = true;
-        roomService
-            .getUserRooms(user.id)
-            .then((rooms) => {
-                if (!active) return;
-                const next: Record<number, 'owner' | 'member'> = {};
-                for (const room of rooms) {
-                    if (room.trip_id == null) continue;
-                    const tripId = Number(room.trip_id);
-                    if (!Number.isFinite(tripId)) continue;
-                    next[tripId] =
-                        room.role_name === 'owner' ? 'owner' : 'member';
-                }
-                setViewerRoleByTripId(next);
-            })
-            .catch(() => {
-                if (!active) return;
-                setViewerRoleByTripId({});
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [isAuthenticated, user]);
 
     async function loadMore() {
         const nextPage = page + 1;
@@ -237,9 +215,7 @@ export default function TripSuggestions() {
                                         const trip = trips.find(
                                             (t) => t.published_trip_id === id,
                                         );
-                                        const role = trip
-                                            ? viewerRoleByTripId[trip.trip_id]
-                                            : undefined;
+                                        const role = trip?.viewer_role;
                                         if (role === 'owner') {
                                             toast.success(
                                                 t(

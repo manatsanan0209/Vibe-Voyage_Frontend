@@ -1,5 +1,15 @@
+import { Compass } from 'lucide-react';
 import { IoArrowBack } from 'react-icons/io5';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardFooter,
+} from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import beachImg from '@/assets/createTrip/beach.png';
 import localCultureImg from '@/assets/createTrip/local_culture.png';
@@ -10,13 +20,11 @@ import slowLifeImg from '@/assets/createTrip/slow_life.png';
 import shoppingImg from '@/assets/createTrip/shopping.png';
 import mountainImg from '@/assets/createTrip/mountain.png';
 
-// ---------- data ----------
-
 const VIBES = [
     {
         id: 'beach_island_chill',
         label: 'Beach & island chill',
-        labelTH: 'ทะเลและเกาะชิลๆ',
+        labelTH: 'ทะเลและเกาะชิล ๆ',
         image: beachImg,
     },
     {
@@ -33,14 +41,14 @@ const VIBES = [
     },
     {
         id: 'photo_spots_cafe',
-        label: 'Photo spots & café',
+        label: 'Photo spots & cafe',
         labelTH: 'ถ่ายรูปและคาเฟ่',
         image: photoCafeImg,
     },
     {
         id: 'nature_peaceful',
         label: 'Nature & peaceful',
-        labelTH: 'ธรรมชาติ & เงียบสงบ',
+        labelTH: 'ธรรมชาติและเงียบสงบ',
         image: natureImg,
     },
     {
@@ -52,7 +60,7 @@ const VIBES = [
     {
         id: 'shopping_market',
         label: 'Shopping & market',
-        labelTH: 'ซื้อของและตลาด',
+        labelTH: 'ช้อปปิ้งและตลาด',
         image: shoppingImg,
     },
     {
@@ -63,9 +71,7 @@ const VIBES = [
     },
 ];
 
-// ---------- VibeCard ----------
-
-interface CardProps {
+interface VibeCardProps {
     id: string;
     label: string;
     labelTH: string;
@@ -74,66 +80,61 @@ interface CardProps {
     onChange: (id: string) => void;
 }
 
-function VibeCard({ id, label, labelTH, image, checked, onChange }: CardProps) {
+function VibeCard({
+    id,
+    label,
+    labelTH,
+    image,
+    checked,
+    onChange,
+}: VibeCardProps) {
     return (
         <button
             type="button"
+            aria-pressed={checked}
             onClick={() => onChange(id)}
             className={cn(
-                'flex items-center gap-3 w-full rounded-xl border-2 px-5 py-3 text-left transition-colors duration-150',
+                'group flex min-h-[84px] w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200',
                 checked
-                    ? 'bg-secondary border-ring'
-                    : 'bg-white border-gray-300 hover:border-ring',
+                    ? 'border-primary/30 bg-linear-to-br from-primary/12 via-white to-secondary/70 shadow-[0_16px_40px_-28px_rgba(76,61,121,0.9)]'
+                    : 'border-white/70 bg-white/75 hover:border-primary/20 hover:bg-white',
             )}
         >
-            <img
-                src={image}
-                alt={label}
-                className="size-12 rounded-full shrink-0 object-cover"
-            />
-            <span className="flex flex-col min-w-0">
-                <span className="text-base font-semibold text-black leading-tight truncate">
+            <span
+                className={cn(
+                    'flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors',
+                    checked
+                        ? 'border-primary/20 bg-primary text-primary-foreground'
+                        : 'border-border bg-muted/80 text-muted-foreground group-hover:border-primary/20',
+                )}
+            >
+                <span
+                    className={cn(
+                        'size-2 rounded-full transition-colors',
+                        checked ? 'bg-white' : 'bg-primary/35',
+                    )}
+                />
+            </span>
+
+            <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted/60">
+                <img
+                    src={image}
+                    alt={label}
+                    className="size-10 object-cover"
+                />
+            </span>
+
+            <span className="min-w-0 space-y-0.5">
+                <span className="block text-sm font-semibold leading-snug text-foreground">
                     {label}
                 </span>
-                <span className="text-sm text-muted-foreground font-light leading-tight truncate">
+                <span className="block text-xs leading-snug text-muted-foreground">
                     {labelTH}
                 </span>
             </span>
         </button>
     );
 }
-
-// ---------- QuestionHeader ----------
-
-function QuestionHeader({
-    question,
-    questionTH,
-    note,
-}: {
-    question: string;
-    questionTH: string;
-    note?: string;
-}) {
-    return (
-        <div className="flex items-start justify-between gap-4">
-            <div>
-                <p className="text-lg font-semibold text-black leading-tight">
-                    {question}
-                </p>
-                <p className="text-base font-light text-gray-500 mt-0.5">
-                    {questionTH}
-                </p>
-            </div>
-            {note && (
-                <span className="text-sm font-light text-accent-foreground shrink-0 mt-0.5 whitespace-nowrap">
-                    {note}
-                </span>
-            )}
-        </div>
-    );
-}
-
-// ---------- props ----------
 
 interface Step2TravelVibeProps {
     vibes: string[];
@@ -142,8 +143,6 @@ interface Step2TravelVibeProps {
     onNext: () => void;
 }
 
-// ---------- component ----------
-
 export default function Step2TravelVibe({
     vibes,
     onChange,
@@ -151,44 +150,73 @@ export default function Step2TravelVibe({
     onNext,
 }: Step2TravelVibeProps) {
     return (
-        <div className="w-full flex flex-col gap-6">
-            <QuestionHeader
-                question="What's your travel vibe on this voyage?"
-                questionTH="การเที่ยวของคุณในการเดินทางครั้งนี้เป็นแบบไหน"
-                note="* Choose all that match you"
-            />
+        <div className="flex w-full flex-col gap-3">
+            <Card className="gap-0 overflow-hidden rounded-[24px] border-white/70 bg-white/70 shadow-[0_18px_46px_-34px_rgba(76,61,121,0.55)] backdrop-blur-sm">
+                <CardHeader className="gap-1 border-b border-white/70 px-4.5 py-1.5">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex size-7 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-500">
+                            <Compass className="size-4.5" />
+                        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-8">
-                {VIBES.map((v) => (
-                    <VibeCard
-                        key={v.id}
-                        id={v.id}
-                        label={v.label}
-                        labelTH={v.labelTH}
-                        image={v.image}
-                        checked={vibes.includes(v.id)}
-                        onChange={onChange}
-                    />
-                ))}
-            </div>
+                        <Badge
+                            variant="secondary"
+                            className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold text-primary"
+                        >
+                            {vibes.length} selected
+                        </Badge>
+                    </div>
 
-            <div className="flex items-center justify-between pt-1">
-                <Button
-                    type="button"
-                    onClick={onBack}
-                    className="w-32 h-10 text-black font-semibold bg-gray-400/30 hover:bg-gray-400/20 backdrop-blur-sm"
-                >
-                    {' '}
-                    <IoArrowBack className="size-5" />
-                    Back
-                </Button>
-                <Button
-                    onClick={onNext}
-                    className="w-25 h-10 rounded-lg bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
-                >
-                    Next
-                </Button>
-            </div>
+                    <div className="space-y-0">
+                        <CardTitle className="text-base text-foreground">
+                            What&apos;s your travel vibe on this voyage?
+                        </CardTitle>
+                        <CardDescription className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                            การเดินทางครั้งนี้ของคุณอยากได้บรรยากาศแบบไหน?
+                        </CardDescription>
+                    </div>
+
+                    <Badge
+                        variant="outline"
+                        className="w-fit rounded-full border-primary/15 bg-primary/6 px-2.5 py-1 text-[10px] font-medium text-primary"
+                    >
+                        Choose all that match you
+                    </Badge>
+                </CardHeader>
+
+                <CardContent className="px-4 py-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                        {VIBES.map((vibe) => (
+                            <VibeCard
+                                key={vibe.id}
+                                id={vibe.id}
+                                label={vibe.label}
+                                labelTH={vibe.labelTH}
+                                image={vibe.image}
+                                checked={vibes.includes(vibe.id)}
+                                onChange={onChange}
+                            />
+                        ))}
+                    </div>
+                </CardContent>
+
+                <CardFooter className="justify-between gap-3 border-t border-white/70 px-4.5 py-1.5">
+                    <Button
+                        type="button"
+                        onClick={onBack}
+                        className="w-32 h-10 text-black font-semibold bg-gray-400/30 hover:bg-gray-400/20 backdrop-blur-sm"
+                    >
+                        <IoArrowBack className="size-5" />
+                        Back
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={onNext}
+                        className="w-25 h-10 rounded-lg bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 shadow-none"
+                    >
+                        Next
+                    </Button>
+                </CardFooter>
+            </Card>
         </div>
     );
 }

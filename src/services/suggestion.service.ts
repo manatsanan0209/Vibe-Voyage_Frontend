@@ -18,6 +18,7 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 function authHeader() {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    if (!token) return undefined;
     return { Authorization: `Bearer ${token}` };
 }
 
