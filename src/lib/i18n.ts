@@ -127,6 +127,13 @@ const DICT: Record<SupportedLanguage, Dict> = {
             themeSystem: 'System (follows OS)',
             lang12h: '12-hour',
             lang24h: '24-hour',
+            unsavedDialog: {
+                title: 'Unsaved Changes',
+                message: 'You have unsaved changes. Would you like to save before leaving?',
+                save: 'Save',
+                discard: 'Discard',
+                cancel: 'Stay',
+            },
             notify: {
                 roomInvite: 'Room Invite',
                 roomInviteDesc: 'When someone adds you directly to a room',
@@ -358,6 +365,13 @@ const DICT: Record<SupportedLanguage, Dict> = {
             themeSystem: 'ตามระบบ (OS)',
             lang12h: '12 ชั่วโมง',
             lang24h: '24 ชั่วโมง',
+            unsavedDialog: {
+                title: 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก',
+                message: 'คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการบันทึกก่อนออกจากหน้านี้ไหม?',
+                save: 'บันทึก',
+                discard: 'ทิ้งการเปลี่ยนแปลง',
+                cancel: 'อยู่ต่อ',
+            },
             notify: {
                 roomInvite: 'คำเชิญเข้า Room',
                 roomInviteDesc: 'เมื่อมีคนเพิ่มคุณเข้า room โดยตรง',

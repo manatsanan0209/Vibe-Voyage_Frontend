@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
     Loader2,
     Monitor,
@@ -17,9 +17,18 @@ import {
     MapPin,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useBlocker } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -168,10 +177,14 @@ export default function Settings() {
     const { settings, loading, saving, updateLocal, saveSettings } =
         useSettings();
     const { t } = useI18n();
+    const [isDirty, setIsDirty] = useState(false);
+
+    const blocker = useBlocker(isDirty);
 
     async function handleSave() {
         try {
             await saveSettings();
+            setIsDirty(false);
             toast.success(t('settings.saveSuccess'), {
                 icon: <CheckCircle2 className="size-4" />,
             });
@@ -182,11 +195,50 @@ export default function Settings() {
         }
     }
 
+    async function handleSaveAndLeave() {
+        try {
+            await saveSettings();
+            setIsDirty(false);
+            blocker.proceed?.();
+        } catch {
+            toast.error(t('settings.saveFail'), {
+                icon: <XCircle className="size-4" />,
+            });
+            blocker.reset?.();
+        }
+    }
+
     function set<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
         updateLocal({ [key]: value });
+        setIsDirty(true);
     }
 
     return (
+        <>
+        <Dialog open={blocker.state === 'blocked'} onOpenChange={() => blocker.reset?.()}>
+            <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>{t('settings.unsavedDialog.title')}</DialogTitle>
+                    <DialogDescription>
+                        {t('settings.unsavedDialog.message')}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex-col gap-2 sm:flex-row">
+                    <Button variant="outline" onClick={() => blocker.reset?.()}>
+                        {t('settings.unsavedDialog.cancel')}
+                    </Button>
+                    <Button variant="ghost" onClick={() => blocker.proceed?.()}>
+                        {t('settings.unsavedDialog.discard')}
+                    </Button>
+                    <Button onClick={handleSaveAndLeave} disabled={saving}>
+                        {saving ? (
+                            <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : null}
+                        {t('settings.unsavedDialog.save')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         <main className="flex flex-col gap-6 sm:gap-8 px-4 sm:px-8 pb-12">
             <div className="w-full rounded-4xl bg-muted px-4 sm:px-8 py-6 sm:py-8">
                 <h1 className="mb-6 text-2xl font-bold text-primary">
@@ -544,5 +596,6 @@ export default function Settings() {
                 )}
             </div>
         </main>
+        </>
     );
 }
