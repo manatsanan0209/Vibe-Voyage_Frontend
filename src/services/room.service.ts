@@ -83,6 +83,29 @@ export interface LeaveRoomResponseDTO {
     message: string;
 }
 
+export interface UpdateRoomSettingsRequest {
+    room_name?: string;
+    room_image?: string;
+}
+
+export interface UpdateRoomSettingsData {
+    room_id: number;
+    owner_id: number;
+    room_name: string;
+    room_image: string;
+    updated_at: string;
+}
+
+export interface UpdateMemberRoleData {
+    room_member_id: number;
+    room_id: number;
+    user_id: number;
+    username: string;
+    role: number;
+    role_name: string;
+    created_at: string;
+}
+
 function authHeader() {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     return { Authorization: `Bearer ${token}` };
@@ -194,5 +217,41 @@ export const roomService = {
             },
         );
         return data;
+    },
+
+    async updateSettings(
+        roomId: string,
+        payload: UpdateRoomSettingsRequest,
+    ): Promise<UpdateRoomSettingsData> {
+        const { data } = await axios.patch<ApiResponseDTO<UpdateRoomSettingsData>>(
+            `${apiBaseUrl}/rooms/${roomId}/settings`,
+            payload,
+            { headers: authHeader() },
+        );
+        return data.data;
+    },
+
+    async updateMemberRole(
+        roomId: string,
+        memberID: number,
+        role: number,
+    ): Promise<UpdateMemberRoleData> {
+        const { data } = await axios.patch<ApiResponseDTO<UpdateMemberRoleData>>(
+            `${apiBaseUrl}/rooms/${roomId}/members/${memberID}/role`,
+            { role },
+            { headers: authHeader() },
+        );
+        return data.data;
+    },
+
+    async transferOwnership(
+        roomId: string,
+        newOwnerUserId: number,
+    ): Promise<void> {
+        await axios.patch(
+            `${apiBaseUrl}/rooms/${roomId}/transfer-ownership`,
+            { new_owner_user_id: newOwnerUserId },
+            { headers: authHeader() },
+        );
     },
 };

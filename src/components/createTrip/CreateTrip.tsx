@@ -1,11 +1,13 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Step1TripInfo from './Step1TripInfo';
-import type { Step1Data } from './Step1TripInfo';
+import type { Step1Data, Destination } from './Step1TripInfo';
 import Step2TravelVibe from './Step2TravelVibe';
 import Step3Priorities from './Step3Priorities';
 import { tripService } from '@/services/trip.service';
 import { emitCacheInvalidation } from '@/lib/cache-events';
+import type { ApiResponseDTO } from '@/types/api';
+import type { District } from '@/types/place';
 
 // ---------- toggle helper ----------
 
@@ -61,6 +63,54 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
     const [vibeForm, setVibeForm] = useState<VibeFormData>(INITIAL_VIBE);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [destinations, setDestinations] = useState<Destination[]>([]);
+    const [districtToProvince, setDistrictToProvince] = useState<Map<string, string>>(new Map());
+    const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const fetchDestinations = async () => {
+            setIsLoadingDestinations(true);
+            try {
+                const res = await fetch('http://localhost:8080/api/places/districts');
+                const json: ApiResponseDTO<District[]> = await res.json();
+                if (cancelled) return;
+
+                const seenProvinces = new Map<string, string>();
+                json.data.forEach((district) => {
+                    if (!seenProvinces.has(district.province.province_id)) {
+                        seenProvinces.set(
+                            district.province.province_id,
+                            district.province.province_name_th,
+                        );
+                    }
+                });
+
+                const provinceEntries: Destination[] = Array.from(seenProvinces.entries())
+                    .sort((a, b) => a[1].localeCompare(b[1], 'th'))
+                    .map(([id, name]) => ({ value: `province_${id}`, label: name }));
+
+                const districtEntries: Destination[] = json.data.map((district) => ({
+                    value: district.district_id,
+                    label: `${district.district_name_th}, ${district.province.province_name_th}`,
+                }));
+
+                const dpMap = new Map<string, string>();
+                json.data.forEach((district) =>
+                    dpMap.set(district.district_id, district.province_id),
+                );
+
+                setDistrictToProvince(dpMap);
+                setDestinations([...provinceEntries, ...districtEntries]);
+            } catch (err) {
+                console.error('Failed to fetch districts:', err);
+            } finally {
+                if (!cancelled) setIsLoadingDestinations(false);
+            }
+        };
+        void fetchDestinations();
+        return () => { cancelled = true; };
+    }, []);
 
     async function handleSubmit() {
         setIsSubmitting(true);
@@ -181,11 +231,14 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                 {step === 1 && (
                     <Step1TripInfo
                         onNext={(data) => {
-                            console.log('[Create Trip] Step 1 data:', data);
                             setStep1Data(data);
                             setStep(2);
                         }}
                         initialData={initialData}
+                        defaultValues={step1Data ?? undefined}
+                        destinations={destinations}
+                        districtToProvince={districtToProvince}
+                        isLoadingDestinations={isLoadingDestinations}
                     />
                 )}
 

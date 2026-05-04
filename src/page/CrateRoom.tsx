@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/popover';
 import RoomMembers from '@/components/room/RoomMembers';
 import RoomPlanning from '@/components/room/RoomPlanning';
+import RoomSettingsModal from '@/components/room/RoomSettingsModal';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -350,6 +351,7 @@ export default function CreateRoom() {
     const [error, setError] = useState<string | null>(null);
     const [shareOpen, setShareOpen] = useState(false);
     const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
     const [leaveSubmitting, setLeaveSubmitting] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
@@ -1206,6 +1208,19 @@ export default function CreateRoom() {
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent align="end" className="w-44 p-1">
+                        {isOwner && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                    setMoreMenuOpen(false);
+                                    setSettingsOpen(true);
+                                }}
+                            >
+                                Room Settings
+                            </Button>
+                        )}
                         <Button
                             type="button"
                             variant="ghost"
@@ -1648,6 +1663,12 @@ export default function CreateRoom() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <RoomSettingsModal
+                open={settingsOpen}
+                onOpenChange={setSettingsOpen}
+                roomId={shareRoomId || id || ''}
+            />
 
             {/* Unpublish dialog */}
             <Dialog
