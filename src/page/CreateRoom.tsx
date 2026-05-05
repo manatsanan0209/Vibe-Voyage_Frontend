@@ -1439,7 +1439,10 @@ export default function CreateRoom() {
                                         {createdInvite.invite_code}
                                     </p>
                                     <p className="text-xs text-emerald-700">
-                                        หมดอายุ: {createdInvite.expire_time}
+                                        หมดอายุ:{' '}
+                                        {formatInviteDateTime(
+                                            createdInvite.expire_time,
+                                        )}
                                     </p>
                                     <Button
                                         variant="outline"

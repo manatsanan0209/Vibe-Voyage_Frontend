@@ -13,11 +13,22 @@ const DICT: Record<SupportedLanguage, Dict> = {
             settings: 'Settings',
             yourTrips: 'Your Trips',
             logout: 'Log out',
+            logoutConfirm: {
+                title: 'Log out?',
+                message: 'Are you sure you want to log out?',
+                confirm: 'Log out',
+                cancel: 'Cancel',
+            },
         },
         auth: {
             hi: 'Hi',
             signIn: 'Sign in',
             signUp: 'Sign up',
+            sessionExpired: {
+                title: 'Session Expired',
+                message: 'Your session has expired. Please sign in again to continue.',
+                signIn: 'Sign In',
+            },
         },
         common: {
             loading: 'Loading…',
@@ -252,11 +263,22 @@ const DICT: Record<SupportedLanguage, Dict> = {
             settings: 'ตั้งค่า',
             yourTrips: 'ทริปของคุณ',
             logout: 'ออกจากระบบ',
+            logoutConfirm: {
+                title: 'ออกจากระบบ?',
+                message: 'คุณต้องการออกจากระบบใช่ไหม?',
+                confirm: 'ออกจากระบบ',
+                cancel: 'ยกเลิก',
+            },
         },
         auth: {
             hi: 'สวัสดี',
             signIn: 'เข้าสู่ระบบ',
             signUp: 'สมัครสมาชิก',
+            sessionExpired: {
+                title: 'เซสชันหมดอายุ',
+                message: 'เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่เพื่อใช้งานต่อ',
+                signIn: 'เข้าสู่ระบบ',
+            },
         },
         common: {
             loading: 'กำลังโหลด…',

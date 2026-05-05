@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { STORAGE_KEYS } from '@/lib/constants';
 import { authService } from '@/services/auth.service';
@@ -14,12 +14,14 @@ interface AuthUser {
 interface AuthContextValue {
     user: AuthUser | null;
     isAuthenticated: boolean;
+    sessionExpired: boolean;
     login: (
         credentials: SigninRequestDTO,
         rememberMe: boolean,
     ) => Promise<void>;
     register: (dto: RegisterRequestDTO) => Promise<void>;
     logout: () => void;
+    clearSessionExpired: () => void;
 }
 
 // ── Context ──────────────────────────────────────────────────────────────
@@ -71,6 +73,30 @@ function persistSession(
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(hydrateUser);
+    const [sessionExpired, setSessionExpired] = useState(false);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const expiresAt = localStorage.getItem(STORAGE_KEYS.EXPIRES_AT);
+        if (!expiresAt) return;
+
+        const remaining = new Date(expiresAt).getTime() - Date.now();
+        if (remaining <= 0) {
+            clearStorage();
+            setUser(null);
+            setSessionExpired(true);
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            clearStorage();
+            setUser(null);
+            setSessionExpired(true);
+        }, remaining);
+
+        return () => window.clearTimeout(timer);
+    }, [user]);
 
     const login = useCallback(
         async (credentials: SigninRequestDTO, rememberMe: boolean) => {
@@ -104,12 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     }, []);
 
+    const clearSessionExpired = useCallback(() => {
+        setSessionExpired(false);
+    }, []);
+
     const value: AuthContextValue = {
         user,
         isAuthenticated: user !== null,
+        sessionExpired,
         login,
         register,
         logout,
+        clearSessionExpired,
     };
 
     return (
