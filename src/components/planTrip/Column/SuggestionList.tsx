@@ -8,7 +8,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ImBin } from 'react-icons/im';
 import { MdAdd } from 'react-icons/md';
-import { Search, Loader2 } from 'lucide-react';
+import { GripVertical, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PlaceDetailHoverCard from '@/components/planTrip/PlaceDetailHoverCard';
 import {
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { placeService } from '@/services/place.service';
 import type { PlaceSuggestion, PlaceType } from '@/types/place';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const TYPE_STYLE: Record<PlaceType, string> = {
     Attraction: 'bg-blue-100 text-blue-700',
@@ -33,6 +34,8 @@ type SuggestionListProps = {
     places: PlaceSuggestion[];
     onDelete: (id: string) => void;
     onAdd: (place: PlaceSuggestion) => void;
+    days: { id: string; label: string; isFull: boolean }[];
+    onAddToDay: (placeId: string, dayId: string) => void;
     readOnly?: boolean;
 };
 
@@ -198,17 +201,23 @@ function SortablePlaceCard({
     place,
     index,
     onDelete,
+    days,
+    onAddToDay,
     readOnly,
 }: {
     place: PlaceSuggestion;
     index: number;
     onDelete: (id: string) => void;
+    days: { id: string; label: string; isFull: boolean }[];
+    onAddToDay: (placeId: string, dayId: string) => void;
     readOnly: boolean;
 }) {
+    const isMobile = useIsMobile();
     const {
         attributes,
         listeners,
         setNodeRef,
+        setActivatorNodeRef,
         transform,
         transition,
         isDragging,
@@ -226,12 +235,14 @@ function SortablePlaceCard({
         <div
             ref={setNodeRef}
             style={style}
-            {...(!readOnly ? attributes : {})}
-            {...(!readOnly ? listeners : {})}
+            {...(!readOnly && !isMobile ? attributes : {})}
+            {...(!readOnly && !isMobile ? listeners : {})}
             className={`motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 ${
                 readOnly
                     ? 'cursor-default'
-                    : 'cursor-grab active:cursor-grabbing'
+                    : isMobile
+                      ? ''
+                      : 'cursor-grab active:cursor-grabbing'
             }`}
         >
             <PlaceDetailHoverCard
@@ -241,37 +252,70 @@ function SortablePlaceCard({
                 detail={place.place_detail}
             >
                 <div
-                    className={`flex flex-row items-center justify-between gap-3 rounded-xl border-2 border-indigo-600 bg-background px-3 py-3 shadow-sm transition-all duration-200 md:px-5 md:py-4 ${
+                    className={`flex flex-col gap-3 rounded-xl border-2 border-indigo-600 bg-background px-3 py-3 shadow-sm transition-all duration-200 md:px-5 md:py-4 ${
                         readOnly ? '' : 'hover:-translate-y-0.5 hover:shadow-md'
                     }`}
                 >
-                    <div className="flex flex-col gap-1 my-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                            {place.name}
-                        </p>
-                        <p className="text-xs text-foreground/60 truncate">
-                            {place.address}
-                        </p>
-                        <span
-                            className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${
-                                TYPE_STYLE[place.type]
-                            }`}
-                        >
-                            {place.type}
-                        </span>
+                    <div className="flex items-center justify-between gap-3">
+                        {!readOnly && isMobile && (
+                            <button
+                                ref={setActivatorNodeRef}
+                                type="button"
+                                className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-foreground/40 hover:bg-muted hover:text-foreground"
+                                aria-label="Drag place"
+                                {...attributes}
+                                {...listeners}
+                            >
+                                <GripVertical className="size-4" />
+                            </button>
+                        )}
+
+                        <div className="my-1 flex min-w-0 flex-1 flex-col gap-1">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                                {place.name}
+                            </p>
+                            <p className="truncate text-xs text-foreground/60">
+                                {place.address}
+                            </p>
+                            <span
+                                className={`mt-0.5 inline-block w-fit rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    TYPE_STYLE[place.type]
+                                }`}
+                            >
+                                {place.type}
+                            </span>
+                        </div>
+                        {!readOnly && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-8 shrink-0 border border-border bg-background text-destructive hover:bg-destructive/10 md:size-9"
+                                type="button"
+                                aria-label="Delete"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => onDelete(place.id)}
+                            >
+                                <ImBin />
+                            </Button>
+                        )}
                     </div>
-                    {!readOnly && (
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-8 shrink-0 border border-border bg-background text-destructive hover:bg-destructive/10 md:size-9"
-                            type="button"
-                            aria-label="Delete"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => onDelete(place.id)}
-                        >
-                            <ImBin />
-                        </Button>
+
+                    {!readOnly && days.length > 0 && (
+                        <div className="flex gap-1.5 overflow-x-auto pb-0.5 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            {days.map((day) => (
+                                <Button
+                                    key={day.id}
+                                    type="button"
+                                    size="xs"
+                                    variant="secondary"
+                                    disabled={day.isFull}
+                                    className="h-7 shrink-0 rounded-full px-2 text-[11px]"
+                                    onClick={() => onAddToDay(place.id, day.id)}
+                                >
+                                    {day.label}
+                                </Button>
+                            ))}
+                        </div>
                     )}
                 </div>
             </PlaceDetailHoverCard>
@@ -283,6 +327,8 @@ export default function SuggestionList({
     places,
     onDelete,
     onAdd,
+    days,
+    onAddToDay,
     readOnly = false,
 }: SuggestionListProps) {
     const { setNodeRef } = useDroppable({ id: 'suggestion-list' });
@@ -312,6 +358,8 @@ export default function SuggestionList({
                             place={place}
                             index={index}
                             onDelete={onDelete}
+                            days={days}
+                            onAddToDay={onAddToDay}
                             readOnly={readOnly}
                         />
                     ))}

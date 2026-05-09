@@ -6,6 +6,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ImBin } from 'react-icons/im';
+import { ArrowDown, ArrowUp, GripVertical, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PlaceDetailHoverCard from '@/components/planTrip/PlaceDetailHoverCard';
 import type { PlaceType } from '@/types/place';
@@ -13,6 +14,7 @@ import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
 import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
 import { useSettings } from '@/context/SettingsContext';
 import { useI18n } from '@/hooks/useI18n';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const TYPE_STYLE: Record<PlaceType, string> = {
     Attraction: 'bg-blue-100 text-blue-700',
@@ -20,19 +22,32 @@ const TYPE_STYLE: Record<PlaceType, string> = {
     Hotel: 'bg-green-100 text-green-700',
 };
 
+type DayOption = { id: string; label: string; isFull: boolean };
+
 function SortableScheduleCard({
     item,
     dayIndex,
+    currentDayId,
     index,
     onDelete,
+    onMove,
+    onMoveToDay,
+    onMoveToSuggestions,
+    dayOptions,
     readOnly,
 }: {
     item: ScheduleItem;
     dayIndex: number;
+    currentDayId: string;
     index: number;
     onDelete: (id: string) => void;
+    onMove: (id: string, direction: -1 | 1) => void;
+    onMoveToDay: (id: string, dayId: string) => void;
+    onMoveToSuggestions: (id: string) => void;
+    dayOptions: DayOption[];
     readOnly: boolean;
 }) {
+    const isMobile = useIsMobile();
     const { formatTime } = useSettings();
     const { t } = useI18n();
 
@@ -42,6 +57,7 @@ function SortableScheduleCard({
         attributes,
         listeners,
         setNodeRef,
+        setActivatorNodeRef,
         transform,
         transition,
         isDragging,
@@ -63,12 +79,14 @@ function SortableScheduleCard({
         <div
             ref={setNodeRef}
             style={style}
-            {...(!readOnly ? attributes : {})}
-            {...(!readOnly ? listeners : {})}
+            {...(!readOnly && !isMobile ? attributes : {})}
+            {...(!readOnly && !isMobile ? listeners : {})}
             className={`relative motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 ${
                 readOnly
                     ? 'cursor-default'
-                    : 'cursor-grab active:cursor-grabbing'
+                    : isMobile
+                      ? ''
+                      : 'cursor-grab active:cursor-grabbing'
             }`}
         >
             <div className="absolute top-1/2 -left-6 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-4 ring-background md:-left-7" />
@@ -78,37 +96,119 @@ function SortableScheduleCard({
                 status={item.place_detail_status}
                 detail={item.place_detail}
             >
-                <div className="flex items-start justify-between gap-3 rounded-2xl bg-secondary/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md md:gap-4 md:px-5 md:py-4">
-                    <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold tracking-tight md:text-base">
-                            {timeLabel}
-                        </p>
-                        <p className="mt-1 text-xs text-foreground/80 md:text-sm">
-                            {item.place_name}
-                            {item.place_address
-                                ? `, ${item.place_address}`
-                                : ''}
-                        </p>
-                        <span
-                            className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${
-                                TYPE_STYLE[item.type]
-                            }`}
-                        >
-                            {item.type}
-                        </span>
+                <div className="flex flex-col gap-3 rounded-2xl bg-secondary/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md md:gap-4 md:px-5 md:py-4">
+                    <div className="flex items-start justify-between gap-3">
+                        {!readOnly && isMobile && (
+                            <button
+                                ref={setActivatorNodeRef}
+                                type="button"
+                                className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-foreground/40 hover:bg-background/80 hover:text-foreground"
+                                aria-label="Drag schedule item"
+                                {...attributes}
+                                {...listeners}
+                            >
+                                <GripVertical className="size-4" />
+                            </button>
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold tracking-tight md:text-base">
+                                {timeLabel}
+                            </p>
+                            <p className="mt-1 text-xs text-foreground/80 md:text-sm">
+                                {item.place_name}
+                                {item.place_address
+                                    ? `, ${item.place_address}`
+                                    : ''}
+                            </p>
+                            <span
+                                className={`mt-1.5 inline-block w-fit rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    TYPE_STYLE[item.type]
+                                }`}
+                            >
+                                {item.type}
+                            </span>
+                        </div>
+                        {!readOnly && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-8 shrink-0 border border-border bg-background text-destructive hover:bg-destructive/10 md:size-9"
+                                type="button"
+                                aria-label="Delete"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => onDelete(item.id)}
+                            >
+                                <ImBin />
+                            </Button>
+                        )}
                     </div>
+
                     {!readOnly && (
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-8 shrink-0 border border-border bg-background text-destructive hover:bg-destructive/10 md:size-9"
-                            type="button"
-                            aria-label="Delete"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => onDelete(item.id)}
-                        >
-                            <ImBin />
-                        </Button>
+                        <div className="flex flex-col gap-2 md:hidden">
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    type="button"
+                                    size="xs"
+                                    variant="outline"
+                                    className="h-7 text-[11px]"
+                                    onClick={() => onMove(item.id, -1)}
+                                >
+                                    <ArrowUp className="size-3" />
+                                    Up
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="xs"
+                                    variant="outline"
+                                    className="h-7 text-[11px]"
+                                    onClick={() => onMove(item.id, 1)}
+                                >
+                                    <ArrowDown className="size-3" />
+                                    Down
+                                </Button>
+                            </div>
+
+                            <Button
+                                type="button"
+                                size="xs"
+                                variant="outline"
+                                className="h-7 text-[11px]"
+                                onClick={() => onMoveToSuggestions(item.id)}
+                            >
+                                <ListPlus className="size-3" />
+                                Suggestion List
+                            </Button>
+
+                            <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                {dayOptions.map((day) => {
+                                    const isCurrentDay =
+                                        day.id === currentDayId;
+
+                                    return (
+                                        <Button
+                                            key={day.id}
+                                            type="button"
+                                            size="xs"
+                                            variant={
+                                                isCurrentDay
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                            disabled={
+                                                isCurrentDay || day.isFull
+                                            }
+                                            className="h-7 shrink-0 rounded-full px-2 text-[11px]"
+                                            onClick={() =>
+                                                onMoveToDay(item.id, day.id)
+                                            }
+                                        >
+                                            {day.label}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                 </div>
             </PlaceDetailHoverCard>
@@ -120,11 +220,19 @@ function DroppableDay({
     day,
     dayIndex,
     onDelete,
+    onMove,
+    onMoveToDay,
+    onMoveToSuggestions,
+    dayOptions,
     readOnly,
 }: {
     day: ScheduleDay;
     dayIndex: number;
     onDelete: (id: string) => void;
+    onMove: (id: string, direction: -1 | 1) => void;
+    onMoveToDay: (id: string, dayId: string) => void;
+    onMoveToSuggestions: (id: string) => void;
+    dayOptions: DayOption[];
     readOnly: boolean;
 }) {
     const { formatDate } = useSettings();
@@ -176,8 +284,13 @@ function DroppableDay({
                                 key={item.id}
                                 item={item}
                                 dayIndex={dayIndex}
+                                currentDayId={day.id}
                                 index={index}
                                 onDelete={onDelete}
+                                onMove={onMove}
+                                onMoveToDay={onMoveToDay}
+                                onMoveToSuggestions={onMoveToSuggestions}
+                                dayOptions={dayOptions}
                                 readOnly={readOnly}
                             />
                         ))}
@@ -191,12 +304,20 @@ function DroppableDay({
 type YourScheduleProps = {
     days: ScheduleDay[];
     onDelete: (id: string) => void;
+    onMoveItem: (id: string, direction: -1 | 1) => void;
+    onMoveItemToDay: (id: string, dayId: string) => void;
+    onMoveItemToSuggestions: (id: string) => void;
+    dayOptions: DayOption[];
     readOnly?: boolean;
 };
 
 export default function YourSchedule({
     days,
     onDelete,
+    onMoveItem,
+    onMoveItemToDay,
+    onMoveItemToSuggestions,
+    dayOptions,
     readOnly = false,
 }: YourScheduleProps) {
     const { t } = useI18n();
@@ -216,6 +337,10 @@ export default function YourSchedule({
                         day={day}
                         dayIndex={dayIndex}
                         onDelete={onDelete}
+                        onMove={onMoveItem}
+                        onMoveToDay={onMoveItemToDay}
+                        onMoveToSuggestions={onMoveItemToSuggestions}
+                        dayOptions={dayOptions}
                         readOnly={readOnly}
                     />
                 ))}

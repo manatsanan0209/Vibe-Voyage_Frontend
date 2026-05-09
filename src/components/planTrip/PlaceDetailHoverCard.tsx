@@ -1,4 +1,11 @@
-import type { ReactNode } from 'react';
+import {
+    cloneElement,
+    isValidElement,
+    useState,
+    type MouseEvent,
+    type ReactElement,
+    type ReactNode,
+} from 'react';
 import { HoverCard as HoverCardPrimitive } from 'radix-ui';
 import {
     Clock3,
@@ -10,6 +17,13 @@ import {
 } from 'lucide-react';
 import type { PlaceDetail, PlaceDetailStatus, PlaceType } from '@/types/place';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 type PlaceDetailHoverCardProps = {
     children: ReactNode;
@@ -29,7 +43,9 @@ function formatReviewCount(value?: number | null): string {
 }
 
 function getWeekdayLines(detail?: PlaceDetail | null): string[] {
-    return detail?.opening_hours?.weekday_text?.filter(Boolean).slice(0, 2) ?? [];
+    return (
+        detail?.opening_hours?.weekday_text?.filter(Boolean).slice(0, 2) ?? []
+    );
 }
 
 function PlaceImage({
@@ -104,7 +120,10 @@ function CachedDetailContent({
                               : 'Closed now'}
                     </div>
                     {weekdayLines.map((line) => (
-                        <p key={line} className="line-clamp-1 text-muted-foreground">
+                        <p
+                            key={line}
+                            className="line-clamp-1 text-muted-foreground"
+                        >
                             {line}
                         </p>
                     ))}
@@ -169,6 +188,37 @@ function UnavailableContent({ placeName }: { placeName: string }) {
     );
 }
 
+function DetailContent({
+    placeName,
+    status,
+    detail,
+}: {
+    placeName: string;
+    status?: PlaceDetailStatus;
+    detail?: PlaceDetail | null;
+}) {
+    if (status === 'pending') {
+        return <PendingContent placeName={placeName} />;
+    }
+
+    if (status === 'unavailable' || !detail) {
+        return <UnavailableContent placeName={placeName} />;
+    }
+
+    return <CachedDetailContent placeName={placeName} detail={detail} />;
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+    return (
+        target instanceof HTMLElement &&
+        Boolean(
+            target.closest(
+                'button,a,input,select,textarea,[role="button"],[data-no-place-detail]',
+            ),
+        )
+    );
+}
+
 export default function PlaceDetailHoverCard({
     children,
     placeName,
@@ -176,8 +226,57 @@ export default function PlaceDetailHoverCard({
     status,
     detail,
 }: PlaceDetailHoverCardProps) {
+    const isMobile = useIsMobile();
+    const [open, setOpen] = useState(false);
+
     if (!isDetailSupported(type) || (!status && !detail)) {
         return <>{children}</>;
+    }
+
+    if (isMobile) {
+        const trigger = isValidElement(children)
+            ? cloneElement(children as ReactElement<{ onClick?: unknown }>, {
+                  onClick: (event: MouseEvent<HTMLElement>) => {
+                      const originalOnClick = (
+                          children as ReactElement<{
+                              onClick?: (
+                                  event: MouseEvent<HTMLElement>,
+                              ) => void;
+                          }>
+                      ).props.onClick;
+
+                      originalOnClick?.(event);
+                      if (
+                          event.defaultPrevented ||
+                          isInteractiveTarget(event.target)
+                      ) {
+                          return;
+                      }
+
+                      setOpen(true);
+                  },
+              })
+            : children;
+
+        return (
+            <>
+                {trigger}
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogContent className="max-h-[85dvh] w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="line-clamp-2 text-left text-base">
+                                {placeName}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <DetailContent
+                            placeName={placeName}
+                            status={status}
+                            detail={detail}
+                        />
+                    </DialogContent>
+                </Dialog>
+            </>
+        );
     }
 
     return (
@@ -193,16 +292,11 @@ export default function PlaceDetailHoverCard({
                     collisionPadding={12}
                     className="z-50 w-[min(340px,calc(100vw-32px))] rounded-lg border border-border bg-background p-3 text-foreground shadow-xl outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
                 >
-                    {status === 'pending' ? (
-                        <PendingContent placeName={placeName} />
-                    ) : status === 'unavailable' || !detail ? (
-                        <UnavailableContent placeName={placeName} />
-                    ) : (
-                        <CachedDetailContent
-                            placeName={placeName}
-                            detail={detail}
-                        />
-                    )}
+                    <DetailContent
+                        placeName={placeName}
+                        status={status}
+                        detail={detail}
+                    />
                     <HoverCardPrimitive.Arrow className="size-2.5 rotate-45 rounded-[2px] border-l border-t border-border bg-background" />
                 </HoverCardPrimitive.Content>
             </HoverCardPrimitive.Portal>

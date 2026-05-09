@@ -250,6 +250,149 @@ export default function RoomPlanning({
     const activeScheduleItem = schedule
         .flatMap((d) => d.items)
         .find((i) => i.id === activeId);
+    const dayOptions = schedule.map((day, index) => ({
+        id: day.id,
+        label: `${t('schedule.day')} ${index + 1}`,
+        isFull: day.items.length >= MAX_SLOTS_PER_DAY,
+    }));
+
+    function addPlaceToDay(placeId: string, dayId: string) {
+        if (readOnly) return;
+        const place = places.find((p) => p.id === placeId);
+        const targetDay = schedule.find((day) => day.id === dayId);
+        if (!place || !targetDay || targetDay.items.length >= MAX_SLOTS_PER_DAY)
+            return;
+
+        const newItem: ScheduleItem = {
+            id: place.id,
+            place_id: place.place_id,
+            place_name: place.name,
+            place_address: place.address,
+            location: place.location,
+            day_number: targetDay.day_number,
+            sequence_order: targetDay.items.length,
+            type: place.type,
+            place_detail_status: place.place_detail_status,
+            place_detail: place.place_detail,
+        };
+
+        setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+        setSchedule((prev) =>
+            prev.map((day) =>
+                day.id === dayId
+                    ? { ...day, items: reorderItems([...day.items, newItem]) }
+                    : day,
+            ),
+        );
+    }
+
+    function moveScheduleItem(itemId: string, direction: -1 | 1) {
+        if (readOnly) return;
+
+        setSchedule((prev) =>
+            prev.map((day) => {
+                const currentIndex = day.items.findIndex(
+                    (item) => item.id === itemId,
+                );
+                if (currentIndex === -1) return day;
+
+                const nextIndex = currentIndex + direction;
+                if (nextIndex < 0 || nextIndex >= day.items.length) return day;
+
+                return {
+                    ...day,
+                    items: reorderItems(
+                        arrayMove(day.items, currentIndex, nextIndex),
+                    ),
+                };
+            }),
+        );
+    }
+
+    function moveScheduleItemToDay(itemId: string, dayId: string) {
+        if (readOnly) return;
+        const sourceDay = schedule.find((day) =>
+            day.items.some((item) => item.id === itemId),
+        );
+        const targetDay = schedule.find((day) => day.id === dayId);
+        const item = sourceDay?.items.find(
+            (scheduleItem) => scheduleItem.id === itemId,
+        );
+
+        if (
+            !sourceDay ||
+            !targetDay ||
+            !item ||
+            sourceDay.id === targetDay.id ||
+            targetDay.items.length >= MAX_SLOTS_PER_DAY
+        ) {
+            return;
+        }
+
+        setSchedule((prev) =>
+            prev.map((day) => {
+                if (day.id === sourceDay.id) {
+                    return {
+                        ...day,
+                        items: reorderItems(
+                            day.items.filter(
+                                (scheduleItem) => scheduleItem.id !== itemId,
+                            ),
+                        ),
+                    };
+                }
+
+                if (day.id === targetDay.id) {
+                    return {
+                        ...day,
+                        items: reorderItems([
+                            ...day.items,
+                            {
+                                ...item,
+                                day_number: day.day_number,
+                            },
+                        ]),
+                    };
+                }
+
+                return day;
+            }),
+        );
+    }
+
+    function moveScheduleItemToSuggestions(itemId: string) {
+        if (readOnly) return;
+        const sourceDay = schedule.find((day) =>
+            day.items.some((item) => item.id === itemId),
+        );
+        const movedItem = sourceDay?.items.find((item) => item.id === itemId);
+        if (!sourceDay || !movedItem) return;
+
+        const restored: PlaceSuggestion = {
+            id: movedItem.id,
+            place_id: movedItem.place_id,
+            name: movedItem.place_name,
+            address: movedItem.place_address ?? '',
+            location: movedItem.location ?? { lat: 13.7563, lng: 100.5018 },
+            type: movedItem.type,
+            place_detail_status: movedItem.place_detail_status,
+            place_detail: movedItem.place_detail,
+        };
+
+        setSchedule((prev) =>
+            prev.map((day) =>
+                day.id === sourceDay.id
+                    ? {
+                          ...day,
+                          items: reorderItems(
+                              day.items.filter((item) => item.id !== itemId),
+                          ),
+                      }
+                    : day,
+            ),
+        );
+        setPlaces((prev) => [...prev, restored]);
+    }
 
     return (
         <DndContext
@@ -269,6 +412,8 @@ export default function RoomPlanning({
                         if (readOnly) return;
                         setPlaces((prev) => [...prev, place]);
                     }}
+                    days={dayOptions}
+                    onAddToDay={addPlaceToDay}
                     readOnly={readOnly}
                 />
                 <YourSchedule
@@ -284,6 +429,10 @@ export default function RoomPlanning({
                             })),
                         );
                     }}
+                    onMoveItem={moveScheduleItem}
+                    onMoveItemToDay={moveScheduleItemToDay}
+                    onMoveItemToSuggestions={moveScheduleItemToSuggestions}
+                    dayOptions={dayOptions}
                     readOnly={readOnly}
                 />
                 {/* Map column — always visible on lg+, hidden on smaller screens */}
