@@ -87,13 +87,13 @@ export default function PlanYourTrip() {
     };
 
     return (
-        <div className="w-full rounded-4xl border border-white/70 bg-linear-to-br from-muted via-white/70 to-muted px-4 py-6 sm:px-8 sm:py-8 shadow-[0_20px_60px_-40px_rgba(76,61,121,0.55)] backdrop-blur-sm flex flex-col items-center gap-1">
-            <div className="flex flex-col items-center gap-2">
-                <h2 className="text-2xl font-bold leading-tight text-primary">
+        <div className="flex w-full flex-col items-center gap-2 rounded-[24px] border border-white/70 bg-linear-to-br from-muted via-white/70 to-muted px-3 py-5 shadow-[0_20px_60px_-40px_rgba(76,61,121,0.55)] backdrop-blur-sm sm:gap-1 sm:rounded-4xl sm:px-8 sm:py-8">
+            <div className="flex max-w-full flex-col items-center gap-2 text-center">
+                <h2 className="text-balance text-xl font-bold leading-tight text-primary sm:text-2xl">
                     {t('home.planTitle')}
                 </h2>
 
-                <p className="text-sm font-normal text-primary">
+                <p className="max-w-prose text-pretty text-xs font-normal leading-5 text-primary sm:text-sm">
                     {lang === 'th' ? (
                         <>
                             คัดสรรช่วงเวลา สร้าง{' '}
@@ -114,9 +114,9 @@ export default function PlanYourTrip() {
                 </p>
             </div>
 
-            <div className="flex w-full max-w-full flex-col sm:max-w-115.25">
-                <div className="flex items-center gap-3 rounded-[22px] border border-white/70 bg-white/70 px-3 py-2.5 sm:gap-4">
-                    <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
+            <div className="flex w-full max-w-full flex-col gap-3 sm:max-w-115.25 sm:gap-0">
+                <div className="flex flex-col gap-3 rounded-[22px] border border-white/70 bg-white/70 px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:py-2.5">
+                    <div className="flex shrink-0 items-center gap-2 sm:w-22 sm:flex-col sm:gap-0.5">
                         <div className="flex size-8 items-center justify-center rounded-xl border border-violet-100 bg-violet-50 text-violet-500">
                             <img
                                 src={location}
@@ -124,12 +124,12 @@ export default function PlanYourTrip() {
                                 className="w-4.5 h-4.5 object-cover"
                             />
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">
+                        <span className="text-sm font-semibold text-gray-900 sm:text-center">
                             {t('home.whereTo')}
                         </span>
                     </div>
 
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                         <DestinationSelect
                             destinations={destinations}
                             value={destination}
@@ -142,25 +142,25 @@ export default function PlanYourTrip() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-[22px] border border-white/70 bg-white/70 px-3 py-2.5 sm:gap-4">
-                    <div className="w-18 sm:w-22 shrink-0 flex flex-col items-center gap-0.5">
+                <div className="flex flex-col gap-3 rounded-[22px] border border-white/70 bg-white/70 px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:py-2.5">
+                    <div className="flex shrink-0 items-center gap-2 sm:w-22 sm:flex-col sm:gap-0.5">
                         <div className="flex size-8 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-500">
                             <CalendarDays className="size-4.5" />
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">
+                        <span className="text-sm font-semibold text-gray-900 sm:text-center">
                             {t('home.day')}
                         </span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row flex-1 gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row">
                         <DatePickerInput
                             placeholder={t('home.startDate')}
                             value={startDate}
                             onChange={setStartDate}
                             disablePast
-                            className="flex-1 w-auto min-w-0"
+                            className="w-full min-w-0 max-w-full shrink md:flex-1"
                         />
-                        <span className="text-sm font-semibold text-gray-900 shrink-0 self-center">
+                        <span className="shrink-0 self-center text-sm font-semibold text-gray-900">
                             {t('common.to')}
                         </span>
                         <DatePickerInput
@@ -169,7 +169,7 @@ export default function PlanYourTrip() {
                             onChange={setEndDate}
                             minDate={startDate}
                             rangeFrom={startDate}
-                            className="flex-1 w-auto min-w-0"
+                            className="w-full min-w-0 max-w-full shrink md:flex-1"
                         />
                     </div>
                 </div>
@@ -183,7 +183,7 @@ export default function PlanYourTrip() {
 
             <Button
                 onClick={handlePlan}
-                className="mt-4 w-full sm:w-53.5 h-8.25 rounded-lg bg-primary font-extrabold text-sm text-primary-foreground shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-primary/90 hover:shadow-none"
+                className="mt-3 h-9 w-full rounded-lg bg-primary text-sm font-extrabold text-primary-foreground shadow-[0px_4px_4px_0px_rgba(93,93,93,0.25)] hover:rounded-4xl hover:bg-primary/90 hover:shadow-none sm:mt-4 sm:h-8.25 sm:w-53.5"
             >
                 <Compass className="size-4" />
                 {t('home.plan')}

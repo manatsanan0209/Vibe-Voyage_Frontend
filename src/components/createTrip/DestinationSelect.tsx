@@ -48,23 +48,29 @@ export function DestinationSelect({
                     role="combobox"
                     aria-expanded={open}
                     disabled={isLoading}
-                    className="w-full h-10 bg-white justify-between font-normal"
+                    className="h-10 w-full min-w-0 justify-between bg-white font-normal"
                 >
-                    {isLoading ? (
-                        <span className="text-muted-foreground">
-                            {t('destinationSelect.loading')}
-                        </span>
-                    ) : selectedLabel ? (
-                        selectedLabel
-                    ) : (
-                        <span className="text-muted-foreground">
-                            {t('destinationSelect.placeholderExample')}
-                        </span>
-                    )}
-                    <ChevronsUpDown className="opacity-50" />
+                    <span className="min-w-0 flex-1 truncate text-left">
+                        {isLoading ? (
+                            <span className="text-muted-foreground">
+                                {t('destinationSelect.loading')}
+                            </span>
+                        ) : selectedLabel ? (
+                            selectedLabel
+                        ) : (
+                            <span className="text-muted-foreground">
+                                {t('destinationSelect.placeholderExample')}
+                            </span>
+                        )}
+                    </span>
+                    <ChevronsUpDown className="shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent>
+            <PopoverContent
+                align="start"
+                collisionPadding={8}
+                className="w-[min(22rem,calc(100vw-1rem))] p-0"
+            >
                 <Command>
                     <CommandInput
                         placeholder={t('destinationSelect.searchPlaceholder')}

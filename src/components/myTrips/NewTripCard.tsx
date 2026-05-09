@@ -35,7 +35,7 @@ export default function NewTripCard() {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="w-full aspect-183/130 rounded-2xl bg-primary border-2 border-primary flex flex-col items-center justify-center text-primary-foreground font-bold text-xl leading-snug hover:bg-primary/90 transition-colors cursor-pointer shrink-0"
+                className="aspect-183/130 w-full shrink-0 cursor-pointer rounded-2xl border-2 border-primary bg-primary text-base font-bold leading-snug text-primary-foreground transition-colors hover:bg-primary/90 sm:text-xl flex flex-col items-center justify-center"
             >
                 <span>+</span>
                 <span>New Trip</span>

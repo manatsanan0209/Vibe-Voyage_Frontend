@@ -368,9 +368,7 @@ export default function CreateRoom() {
     const [currentRole, setCurrentRole] = useState<number | null>(
         joinedRoleFromState,
     );
-    const [canEditTrip, setCanEditTrip] = useState(
-        joinedRoleFromState !== 3,
-    );
+    const [canEditTrip, setCanEditTrip] = useState(joinedRoleFromState !== 3);
     const [canManageRoom, setCanManageRoom] = useState(
         joinedRoleFromState === 1,
     );
@@ -1024,26 +1022,6 @@ export default function CreateRoom() {
         rescheduleRequestStatus,
         showToast,
     ]);
-
-    useEffect(() => {
-        return;
-        if (!id || !isOwner) return;
-        let active = true;
-
-        suggestionService
-            .checkPublishStatus(id ?? '')
-            .then((status) => {
-                if (!active) return;
-                setPublishStatus(status);
-            })
-            .catch(() => {
-                /* non-critical — publish status unavailable */
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [id, isOwner]);
 
     const handlePublish = useCallback(async () => {
         if (!id) return;

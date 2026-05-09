@@ -27,6 +27,8 @@ dist-ssr
 # Environment variables
 .env
 
-
-#  claude mcp server
+# claude mcp server
 *.mcp.json
+
+# playwright cli
+.playwright-cli/

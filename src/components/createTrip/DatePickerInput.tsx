@@ -50,20 +50,22 @@ export function DatePickerInput({
                 <Button
                     variant="outline"
                     className={cn(
-                        'w-44 h-10 bg-white justify-start font-normal',
+                        'h-10 w-44 max-w-full justify-start bg-white font-normal',
                         !value && 'text-muted-foreground',
                         className,
                     )}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {value ? formatDate(value) : resolvedPlaceholder}
+                    <span className="min-w-0 truncate">
+                        {value ? formatDate(value) : resolvedPlaceholder}
+                    </span>
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-auto p-0"
+                className="max-w-[calc(100vw-1rem)] overflow-auto p-0"
                 align="start"
                 side="bottom"
-                avoidCollisions={false}
+                collisionPadding={8}
             >
                 {rangeFrom ? (
                     <Calendar

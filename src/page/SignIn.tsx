@@ -11,9 +11,9 @@ export default function SignIn() {
     const { t } = useI18n();
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-14 bg-secondary">
-            <div className="w-11/12 h-11/12 flex flex-col md:flex-row rounded-4xl bg-white shadow-lg overflow-hidden">
-                <div className="w-full md:w-1/2 h-full relative">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-14 bg-secondary">
+            <div className="flex h-11/12 w-11/12 flex-col overflow-y-auto rounded-4xl bg-white shadow-lg md:flex-row md:overflow-hidden">
+                <div className="relative hidden h-full md:block md:w-1/2">
                     <img
                         src={bg}
                         className="w-full h-full object-cover"
@@ -27,7 +27,15 @@ export default function SignIn() {
                         {t('common.back')}
                     </Button>
                 </div>
-                <div className="w-full md:w-1/2 flex h-full flex-col items-center justify-center px-6 py-10">
+                <div className="flex min-h-full w-full flex-col items-center px-5 py-6 md:h-full md:min-h-0 md:w-1/2 md:justify-center md:px-6 md:py-10">
+                    <Button
+                        onClick={() => navigate(-1)}
+                        variant="ghost"
+                        className="mb-4 self-start text-primary md:hidden"
+                    >
+                        <IoArrowBack />
+                        {t('common.back')}
+                    </Button>
                     <AuthLogo />
                     <div className="h-1/12 w-full" />
                     <FormSignIn />

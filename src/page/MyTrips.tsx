@@ -190,18 +190,18 @@ export default function MyTrips() {
                     </div>
                 )}
 
-                <div className="grid gap-10 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-10 md:grid-cols-3 xl:grid-cols-4">
                     {showNewTripCard && <NewTripCard />}
 
                     {loading && (
                         <div
                             className={`rounded-lg border border-dashed border-border bg-white p-4 sm:p-6 ${
                                 showNewTripCard
-                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                    ? 'col-span-full sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'col-span-full sm:col-span-2 md:col-span-3 xl:col-span-4'
                             }`}
                         >
-                            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
                                 <Skeleton className="h-52 w-full rounded-xl" />
                                 <Skeleton className="h-52 w-full rounded-xl" />
                                 <Skeleton className="h-52 w-full rounded-xl" />
@@ -219,8 +219,8 @@ export default function MyTrips() {
                         <div
                             className={`rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-600 ${
                                 showNewTripCard
-                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                    ? 'col-span-full sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'col-span-full sm:col-span-2 md:col-span-3 xl:col-span-4'
                             }`}
                         >
                             {error}
@@ -231,8 +231,8 @@ export default function MyTrips() {
                         <div
                             className={`rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-primary ${
                                 showNewTripCard
-                                    ? 'sm:col-span-1 md:col-span-2 xl:col-span-3'
-                                    : 'sm:col-span-2 md:col-span-3 xl:col-span-4'
+                                    ? 'col-span-full sm:col-span-1 md:col-span-2 xl:col-span-3'
+                                    : 'col-span-full sm:col-span-2 md:col-span-3 xl:col-span-4'
                             }`}
                         >
                             {t('myTrips.empty')}
