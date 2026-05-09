@@ -148,6 +148,8 @@ export default function RoomPlanning({
                 day_number: targetDay.day_number,
                 sequence_order: 0,
                 type: place.type,
+                place_detail_status: place.place_detail_status,
+                place_detail: place.place_detail,
             };
             setPlaces((prev) => prev.filter((p) => p.id !== activeId));
             setSchedule((prev) =>
@@ -175,6 +177,8 @@ export default function RoomPlanning({
                 address: movedItem.place_address ?? '',
                 location: movedItem.location ?? { lat: 13.7563, lng: 100.5018 },
                 type: movedItem.type,
+                place_detail_status: movedItem.place_detail_status,
+                place_detail: movedItem.place_detail,
             };
             setSchedule((prev) =>
                 prev.map((day) => {

@@ -1,8 +1,13 @@
-import type { LatLngLiteral, PlaceType } from './place';
+import type {
+    LatLngLiteral,
+    PlaceDetail,
+    PlaceDetailStatus,
+    PlaceType,
+} from './place';
 
 export type ScheduleItem = {
     id: string; // client DnD id
-    place_id: string; // DB: place_id (Google Places)
+    place_id: string; // DB: local/internal place id
     place_name: string; // DB: place_name
     place_address?: string; // display only
     location?: LatLngLiteral; // display only (for map pins)
@@ -11,6 +16,8 @@ export type ScheduleItem = {
     start_time?: string; // DB: start_time (ISO datetime, auto-assigned by slot)
     end_time?: string; // DB: end_time (ISO datetime, auto-assigned by slot)
     type: PlaceType; // DB: type ENUM
+    place_detail_status?: PlaceDetailStatus;
+    place_detail?: PlaceDetail | null;
 };
 
 export type ScheduleDay = {

@@ -6,7 +6,7 @@ import SignIn from './page/SignIn';
 import SignUp from './page/SignUp';
 import AboutUs from './page/AboutUs';
 import TripInformForm from './page/TripInformForm';
-import CreateRoom from './page/CreateRoom';
+import CreateRoom from './page/PlanTrip';
 import CreateTripPage from './page/CreateTrip';
 import MyTrips from './page/MyTrips';
 import Settings from './page/Settings';

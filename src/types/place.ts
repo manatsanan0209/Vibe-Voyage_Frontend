@@ -5,13 +5,31 @@ export type LatLngLiteral = {
 
 export type PlaceType = 'Attraction' | 'Restaurant' | 'Hotel';
 
+export type PlaceDetailStatus = 'cached' | 'pending' | 'unavailable';
+
+export type PlaceOpeningHours = {
+    weekday_text?: string[];
+    open_now?: boolean;
+};
+
+export type PlaceDetail = {
+    rating?: number | null;
+    user_rating_count?: number | null;
+    opening_hours?: PlaceOpeningHours | null;
+    photo_url?: string | null;
+    google_maps_uri?: string | null;
+    editorial_summary?: string | null;
+};
+
 export type PlaceSuggestion = {
     id: string; // client DnD id
-    place_id: string; // Google Places API id → DB place_id
-    name: string; // display name → DB place_name
+    place_id: string; // local/internal place id from backend
+    name: string; // display name from backend
     address: string; // display address
     location: LatLngLiteral;
     type: PlaceType; // DB type ENUM
+    place_detail_status?: PlaceDetailStatus;
+    place_detail?: PlaceDetail | null;
 };
 export interface Region {
     region_id: string;

@@ -10,6 +10,7 @@ import { ImBin } from 'react-icons/im';
 import { MdAdd } from 'react-icons/md';
 import { Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PlaceDetailHoverCard from '@/components/planTrip/PlaceDetailHoverCard';
 import {
     Dialog,
     DialogContent,
@@ -226,38 +227,52 @@ function SortablePlaceCard({
             style={style}
             {...(!readOnly ? attributes : {})}
             {...(!readOnly ? listeners : {})}
-            className={`flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-sm transition-all duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 ${readOnly
+            className={`motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 ${readOnly
                     ? 'cursor-default'
-                    : 'hover:-translate-y-0.5 hover:shadow-md cursor-grab active:cursor-grabbing'
+                    : 'cursor-grab active:cursor-grabbing'
                 }`}
         >
-            <div className="flex flex-col gap-1 my-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">
-                    {place.name}
-                </p>
-                <p className="text-xs text-foreground/60 truncate">
-                    {place.address}
-                </p>
-                <span
-                    className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${TYPE_STYLE[place.type]
+            <PlaceDetailHoverCard
+                placeName={place.name}
+                type={place.type}
+                status={place.place_detail_status}
+                detail={place.place_detail}
+            >
+                <div
+                    className={`flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-sm transition-all duration-200 ${readOnly
+                            ? ''
+                            : 'hover:-translate-y-0.5 hover:shadow-md'
                         }`}
                 >
-                    {place.type}
-                </span>
-            </div>
-            {!readOnly && (
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
-                    type="button"
-                    aria-label="Delete"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => onDelete(place.id)}
-                >
-                    <ImBin />
-                </Button>
-            )}
+                    <div className="flex flex-col gap-1 my-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                            {place.name}
+                        </p>
+                        <p className="text-xs text-foreground/60 truncate">
+                            {place.address}
+                        </p>
+                        <span
+                            className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${TYPE_STYLE[place.type]
+                                }`}
+                        >
+                            {place.type}
+                        </span>
+                    </div>
+                    {!readOnly && (
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
+                            type="button"
+                            aria-label="Delete"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => onDelete(place.id)}
+                        >
+                            <ImBin />
+                        </Button>
+                    )}
+                </div>
+            </PlaceDetailHoverCard>
         </div>
     );
 }

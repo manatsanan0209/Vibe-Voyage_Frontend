@@ -26,9 +26,9 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import RoomMembers from '@/components/room/RoomMembers';
-import RoomPlanning from '@/components/room/RoomPlanning';
-import RoomSettingsModal from '@/components/room/RoomSettingsModal';
+import RoomMembers from '@/components/planTrip/RoomMembers';
+import RoomPlanning from '@/components/planTrip/RoomPlanning';
+import RoomSettingsModal from '@/components/planTrip/RoomSettingsModal';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -40,14 +40,16 @@ import {
     roomService,
     type CreateInviteCodeRequest,
     type RoomInviteCode,
-    type RoomMember,
     type RoomMemberLifestyleSubmission,
 } from '@/services/room.service';
 import {
     tripService,
+    type PlanTripMember,
     type ReplaceTripScheduleItemDTO,
     type ReplaceTripScheduleRequestDTO,
     type RescheduleConflictDataDTO,
+    type RescheduleReadinessDTO,
+    type RescheduleReadinessWaitingMember,
     type ScheduleDayResponseDTO,
 } from '@/services/trip.service';
 import { suggestionService } from '@/services/suggestion.service';
@@ -93,6 +95,9 @@ type RoomRouteState = {
 };
 
 type InviteExpireChoice = '12h' | '1d' | '3d' | '7d' | 'unlimited';
+type RescheduleWaitingMember =
+    | RoomMemberLifestyleSubmission
+    | RescheduleReadinessWaitingMember;
 
 function buildRescheduleBaseStatus(
     currentRole: number | null,
@@ -100,9 +105,12 @@ function buildRescheduleBaseStatus(
 ): {
     status: Exclude<
         GroupRescheduleStatus,
-        'rescheduling' | 'reschedule_success' | 'reschedule_conflict' | 'reschedule_error'
+        | 'rescheduling'
+        | 'reschedule_success'
+        | 'reschedule_conflict'
+        | 'reschedule_error'
     >;
-    waitingMembers: RoomMemberLifestyleSubmission[];
+    waitingMembers: RescheduleWaitingMember[];
 } {
     if (currentRole !== 1) {
         return {
@@ -243,14 +251,6 @@ function normalizeInviteAccessLabel(access: RoomInviteCode['access']): string {
     return 'unknown';
 }
 
-function resolveRoomIdFromMembers(
-    routeId: string,
-    members: RoomMember[],
-): string {
-    const roomId = members[0]?.room_id;
-    return roomId ? String(roomId) : routeId;
-}
-
 function normalizeTypeForScheduleApi(type: PlaceType): string {
     switch (type) {
         case 'Attraction':
@@ -325,12 +325,22 @@ function buildReplaceSchedulePayload(
     };
 }
 
+function buildScheduleRenderHash(
+    suggestions: PlaceSuggestion[],
+    schedule: ScheduleDay[],
+): string {
+    return JSON.stringify({
+        suggestions,
+        schedule,
+    });
+}
+
 export default function CreateRoom() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
     const { setOpen } = useSidebar();
-    const { user, logout } = useAuth();
+    const { logout } = useAuth();
     const { formatDate, formatTime } = useSettings();
     const { t } = useI18n();
     const routeState = (location.state as RoomRouteState | null) ?? null;
@@ -358,7 +368,16 @@ export default function CreateRoom() {
     const [currentRole, setCurrentRole] = useState<number | null>(
         joinedRoleFromState,
     );
+    const [canEditTrip, setCanEditTrip] = useState(
+        joinedRoleFromState !== 3,
+    );
+    const [canManageRoom, setCanManageRoom] = useState(
+        joinedRoleFromState === 1,
+    );
     const [shareRoomId, setShareRoomId] = useState<string>('');
+    const [bootstrapMembers, setBootstrapMembers] = useState<
+        PlanTripMember[] | undefined
+    >(undefined);
     const [inviteAccess, setInviteAccess] = useState<'view' | 'edit'>('view');
     const [inviteExpireChoice, setInviteExpireChoice] =
         useState<InviteExpireChoice>('1d');
@@ -377,7 +396,7 @@ export default function CreateRoom() {
     const [scheduleReadinessStatus, setScheduleReadinessStatus] =
         useState<ScheduleReadinessStatus>('initial-loading');
     const [rescheduleWaitingMembers, setRescheduleWaitingMembers] = useState<
-        RoomMemberLifestyleSubmission[]
+        RescheduleWaitingMember[]
     >([]);
     const [rescheduleBaseStatus, setRescheduleBaseStatus] =
         useState<GroupRescheduleStatus>('loading_members');
@@ -401,6 +420,7 @@ export default function CreateRoom() {
         items: [],
     });
     const latestHashRef = useRef('');
+    const latestRenderHashRef = useRef('');
     const lastSyncedHashRef = useRef('');
     const initializedRef = useRef(false);
     const suppressAutosaveRef = useRef(false);
@@ -408,6 +428,10 @@ export default function CreateRoom() {
     const pollInFlightRef = useRef(false);
     const retryTimerRef = useRef<number | null>(null);
     const nextPollAtRef = useRef(0);
+    const schedulePollIntervalRef = useRef(POLLING_SYNC_INTERVAL_MS);
+    const scheduleReadinessPollIntervalRef = useRef(
+        POLLING_READINESS_INTERVAL_MS,
+    );
     const pollFailureStreakRef = useRef(0);
     const isReschedulingRef = useRef(false);
     const lifestyleInvalidationEmittedRef = useRef(false);
@@ -420,7 +444,7 @@ export default function CreateRoom() {
                 ? routeState.createdAt
                 : Date.now(),
     });
-    const saveScheduleRef = useRef<() => Promise<void>>(async () => {});
+    const saveScheduleRef = useRef<() => Promise<void>>(async () => { });
 
     useEffect(() => {
         setOpen(false);
@@ -449,12 +473,17 @@ export default function CreateRoom() {
                 mappedSchedule,
             );
             const nextHash = JSON.stringify(nextPayload);
+            const nextRenderHash = buildScheduleRenderHash(
+                suggestions,
+                mappedSchedule,
+            );
 
             suppressAutosaveRef.current = true;
             setPlaces(suggestions);
             setSchedule(mappedSchedule);
             latestPayloadRef.current = nextPayload;
             latestHashRef.current = nextHash;
+            latestRenderHashRef.current = nextRenderHash;
             lastSyncedHashRef.current = nextHash;
 
             requestAnimationFrame(() => {
@@ -469,6 +498,14 @@ export default function CreateRoom() {
         navigate('/signin', { replace: true });
     }, [logout, navigate]);
 
+    const applyRescheduleReadiness = useCallback(
+        (readiness: RescheduleReadinessDTO) => {
+            setRescheduleBaseStatus(readiness.status);
+            setRescheduleWaitingMembers(readiness.waiting_members);
+        },
+        [],
+    );
+
     const refreshRescheduleReadiness = useCallback(async () => {
         const roomIdForSubmissions = shareRoomId || id;
         if (!roomIdForSubmissions) return;
@@ -476,9 +513,10 @@ export default function CreateRoom() {
         setRescheduleBaseStatus('loading_members');
 
         try {
-            const submissions = await roomService.getMembersLifestyleSubmissions(
-                roomIdForSubmissions,
-            );
+            const submissions =
+                await roomService.getMembersLifestyleSubmissions(
+                    roomIdForSubmissions,
+                );
             const next = buildRescheduleBaseStatus(currentRole, submissions);
             setRescheduleBaseStatus(next.status);
             setRescheduleWaitingMembers(next.waitingMembers);
@@ -489,9 +527,7 @@ export default function CreateRoom() {
             }
 
             const fallbackStatus: GroupRescheduleStatus =
-                currentRole === 1
-                    ? 'waiting_for_member_analysis'
-                    : 'not_owner';
+                currentRole === 1 ? 'waiting_for_member_analysis' : 'not_owner';
             setRescheduleBaseStatus(fallbackStatus);
             setRescheduleWaitingMembers([]);
         }
@@ -500,13 +536,18 @@ export default function CreateRoom() {
     useEffect(() => {
         if (!id) return;
 
+        let active = true;
         initializedRef.current = false;
         setLoading(true);
         setError(null);
+        setBootstrapMembers(undefined);
         setScheduleReadinessStatus('initial-loading');
         prevScheduleReadinessStatusRef.current = 'initial-loading';
         pollFailureStreakRef.current = 0;
-        nextPollAtRef.current = 0;
+        nextPollAtRef.current = Number.POSITIVE_INFINITY;
+        schedulePollIntervalRef.current = POLLING_SYNC_INTERVAL_MS;
+        scheduleReadinessPollIntervalRef.current =
+            POLLING_READINESS_INTERVAL_MS;
         scheduleReadinessRef.current = {
             enabled: isFromCreateTrip,
             startedAt:
@@ -516,75 +557,109 @@ export default function CreateRoom() {
         };
 
         tripService
-            .getSchedule(id)
-            .then(({ suggestions, days }) => {
+            .getPlanTripBootstrap(id)
+            .then((bootstrap) => {
+                if (!active) return;
+
+                const { suggestions, days } = bootstrap.schedule;
+                schedulePollIntervalRef.current =
+                    bootstrap.polling?.schedule_poll_after_ms ??
+                    POLLING_SYNC_INTERVAL_MS;
+                scheduleReadinessPollIntervalRef.current =
+                    bootstrap.polling?.schedule_readiness_poll_after_ms ??
+                    POLLING_READINESS_INTERVAL_MS;
+
                 applyServerSnapshot(suggestions, days);
+                setCurrentRole(bootstrap.current_user.role);
+                setCanEditTrip(bootstrap.current_user.can_edit);
+                setCanManageRoom(bootstrap.current_user.can_manage_room);
+                setShareRoomId(String(bootstrap.room_id || id));
+                setBootstrapMembers(bootstrap.members);
+                applyRescheduleReadiness(bootstrap.reschedule_readiness);
+                setPublishStatus(bootstrap.publish_status);
                 initializedRef.current = true;
 
                 const ready = isScheduleReady(suggestions, days);
                 if (scheduleReadinessRef.current.enabled && !ready) {
                     setScheduleReadinessStatus('generating');
+                    nextPollAtRef.current =
+                        Date.now() + scheduleReadinessPollIntervalRef.current;
                 } else {
                     scheduleReadinessRef.current.enabled = false;
                     setScheduleReadinessStatus('ready');
+                    nextPollAtRef.current =
+                        Date.now() + schedulePollIntervalRef.current;
                 }
             })
             .catch((err) => {
-                console.error('[CreateRoom] Failed to load schedule:', err);
+                if (!active) return;
+                if (axios.isAxiosError(err)) {
+                    const status = err.response?.status;
+                    if (status === 401) {
+                        handleUnauthorized();
+                        return;
+                    }
+                    if (status === 403) {
+                        setPlaces([]);
+                        setSchedule([]);
+                        setCurrentRole(null);
+                        setCanEditTrip(false);
+                        setCanManageRoom(false);
+                        emitCacheInvalidation({
+                            key: 'user-rooms',
+                            reason: 'removed-from-room',
+                        });
+                        navigate('/your-trips', {
+                            replace: true,
+                            state: {
+                                removedFromRoom: true,
+                            },
+                        });
+                        return;
+                    }
+                    if (status === 404) {
+                        setError('Trip not found.');
+                    } else {
+                        setError(
+                            getApiErrorMessage(
+                                err,
+                                'Unable to load trip data.',
+                            ),
+                        );
+                    }
+                } else {
+                    setError('Unable to load trip data.');
+                }
+                console.error('[CreateRoom] Failed to load bootstrap:', err);
                 setError('ไม่สามารถโหลดข้อมูลตารางเดินทางได้');
+                if (axios.isAxiosError(err)) {
+                    setError(
+                        err.response?.status === 404
+                            ? 'Trip not found.'
+                            : getApiErrorMessage(
+                                err,
+                                'Unable to load trip data.',
+                            ),
+                    );
+                }
                 setScheduleReadinessStatus('poll-error');
             })
-            .finally(() => setLoading(false));
-    }, [applyServerSnapshot, id, isFromCreateTrip, routeState?.createdAt]);
-
-    useEffect(() => {
-        if (!id || !user?.id) return;
-
-        let active = true;
-        roomService
-            .getMembers(id)
-            .then((members) => {
-                if (!active) return;
-                const me = members.find((member) => member.user_id === user.id);
-                if (!me) {
-                    setCurrentRole(null);
-                    emitCacheInvalidation({
-                        key: 'user-rooms',
-                        reason: 'removed-from-room',
-                    });
-                    navigate('/your-trips', {
-                        replace: true,
-                        state: {
-                            removedFromRoom: true,
-                        },
-                    });
-                    return;
-                }
-
-                if (me?.role != null) {
-                    setCurrentRole(me.role);
-                } else if (joinedRoleFromState == null) {
-                    setCurrentRole(null);
-                }
-                setShareRoomId(resolveRoomIdFromMembers(id, members));
-            })
-            .catch(() => {
-                if (!active) return;
-                if (joinedRoleFromState == null) {
-                    setCurrentRole(null);
-                }
-                setShareRoomId(id);
+            .finally(() => {
+                if (active) setLoading(false);
             });
 
         return () => {
             active = false;
         };
-    }, [id, joinedRoleFromState, navigate, user?.id]);
-
-    useEffect(() => {
-        if (!id) return;
-        void refreshRescheduleReadiness();
-    }, [id, refreshRescheduleReadiness]);
+    }, [
+        applyRescheduleReadiness,
+        applyServerSnapshot,
+        handleUnauthorized,
+        id,
+        isFromCreateTrip,
+        navigate,
+        routeState?.createdAt,
+    ]);
 
     useEffect(() => {
         const roomIdForSubmissions = shareRoomId || id;
@@ -600,8 +675,8 @@ export default function CreateRoom() {
         });
     }, [id, refreshRescheduleReadiness, shareRoomId]);
 
-    const isOwner = currentRole === 1;
-    const canEdit = currentRole !== 3;
+    const isOwner = canManageRoom || currentRole === 1;
+    const canEdit = canEditTrip;
     const waitingMemberNames = rescheduleWaitingMembers
         .map((member) => member.username)
         .join(', ');
@@ -621,40 +696,37 @@ export default function CreateRoom() {
         latestHashRef.current = replacePayloadHash;
     }, [replacePayload, replacePayloadHash]);
 
-    const saveSchedule = useCallback(
-        async () => {
-            if (!id || !canEdit) return;
-            if (isReschedulingRef.current) return;
-            if (saveInFlightRef.current) return;
-            if (latestHashRef.current === lastSyncedHashRef.current) return;
+    const saveSchedule = useCallback(async () => {
+        if (!id || !canEdit) return;
+        if (isReschedulingRef.current) return;
+        if (saveInFlightRef.current) return;
+        if (latestHashRef.current === lastSyncedHashRef.current) return;
 
-            saveInFlightRef.current = true;
+        saveInFlightRef.current = true;
 
-            try {
-                await tripService.replaceSchedule(id, latestPayloadRef.current);
-                lastSyncedHashRef.current = latestHashRef.current;
-                emitCacheInvalidation({
-                    key: 'trip-schedule',
-                    tripId: id,
-                    reason: 'replace-schedule',
-                });
-                if (retryTimerRef.current != null) {
-                    window.clearTimeout(retryTimerRef.current);
-                    retryTimerRef.current = null;
-                }
-            } catch {
-                if (retryTimerRef.current != null) {
-                    window.clearTimeout(retryTimerRef.current);
-                }
-                retryTimerRef.current = window.setTimeout(() => {
-                    void saveScheduleRef.current();
-                }, AUTOSAVE_RETRY_MS);
-            } finally {
-                saveInFlightRef.current = false;
+        try {
+            await tripService.replaceSchedule(id, latestPayloadRef.current);
+            lastSyncedHashRef.current = latestHashRef.current;
+            emitCacheInvalidation({
+                key: 'trip-schedule',
+                tripId: id,
+                reason: 'replace-schedule',
+            });
+            if (retryTimerRef.current != null) {
+                window.clearTimeout(retryTimerRef.current);
+                retryTimerRef.current = null;
             }
-        },
-        [canEdit, id],
-    );
+        } catch {
+            if (retryTimerRef.current != null) {
+                window.clearTimeout(retryTimerRef.current);
+            }
+            retryTimerRef.current = window.setTimeout(() => {
+                void saveScheduleRef.current();
+            }, AUTOSAVE_RETRY_MS);
+        } finally {
+            saveInFlightRef.current = false;
+        }
+    }, [canEdit, id]);
 
     useEffect(() => {
         saveScheduleRef.current = saveSchedule;
@@ -700,6 +772,10 @@ export default function CreateRoom() {
                     mappedSchedule,
                 );
                 const remoteHash = JSON.stringify(remotePayload);
+                const remoteRenderHash = buildScheduleRenderHash(
+                    suggestions,
+                    mappedSchedule,
+                );
 
                 const hasUnsavedLocalChanges =
                     latestHashRef.current !== lastSyncedHashRef.current;
@@ -707,13 +783,14 @@ export default function CreateRoom() {
 
                 if (
                     !hasUnsavedLocalChanges &&
-                    remoteHash !== latestHashRef.current
+                    remoteRenderHash !== latestRenderHashRef.current
                 ) {
                     suppressAutosaveRef.current = true;
                     setPlaces(suggestions);
                     setSchedule(mappedSchedule);
                     latestPayloadRef.current = remotePayload;
                     latestHashRef.current = remoteHash;
+                    latestRenderHashRef.current = remoteRenderHash;
                     lastSyncedHashRef.current = remoteHash;
 
                     requestAnimationFrame(() => {
@@ -739,16 +816,16 @@ export default function CreateRoom() {
                 nextPollAtRef.current =
                     Date.now() +
                     (scheduleReadinessRef.current.enabled
-                        ? POLLING_READINESS_INTERVAL_MS
-                        : POLLING_SYNC_INTERVAL_MS);
+                        ? scheduleReadinessPollIntervalRef.current
+                        : schedulePollIntervalRef.current);
             } catch (err) {
                 console.error('[CreateRoom] Poll schedule failed:', err);
 
                 pollFailureStreakRef.current += 1;
                 const backoffMs = Math.min(
                     POLLING_MAX_BACKOFF_MS,
-                    POLLING_READINESS_INTERVAL_MS *
-                        2 ** (pollFailureStreakRef.current - 1),
+                    scheduleReadinessPollIntervalRef.current *
+                    2 ** (pollFailureStreakRef.current - 1),
                 );
                 nextPollAtRef.current = Date.now() + backoffMs;
 
@@ -815,7 +892,10 @@ export default function CreateRoom() {
                 'error',
             );
         } else if (scheduleReadinessStatus === 'poll-error') {
-            showToast('เชื่อมต่อไม่เสถียร ระบบจะลองดึงตารางให้อัตโนมัติ', 'error');
+            showToast(
+                'เชื่อมต่อไม่เสถียร ระบบจะลองดึงตารางให้อัตโนมัติ',
+                'error',
+            );
         } else if (
             scheduleReadinessStatus === 'ready' &&
             previous === 'generating'
@@ -831,12 +911,18 @@ export default function CreateRoom() {
         if (rescheduleRequestStatus === 'rescheduling') return;
 
         if (rescheduleBaseStatus === 'loading_members') {
-            showToast('กำลังตรวจสอบความพร้อมของสมาชิก กรุณาลองอีกครั้ง', 'info');
+            showToast(
+                'กำลังตรวจสอบความพร้อมของสมาชิก กรุณาลองอีกครั้ง',
+                'info',
+            );
             return;
         }
 
         if (rescheduleBaseStatus === 'not_owner') {
-            showToast('Only the room owner can re-schedule this trip.', 'error');
+            showToast(
+                'Only the room owner can re-schedule this trip.',
+                'error',
+            );
             return;
         }
 
@@ -877,9 +963,9 @@ export default function CreateRoom() {
             showToast('Re-schedule เสร็จเรียบร้อยแล้ว', 'success');
         } catch (err) {
             if (
-                axios.isAxiosError<ApiErrorResponseDTO<RescheduleConflictDataDTO>>(
-                    err,
-                )
+                axios.isAxiosError<
+                    ApiErrorResponseDTO<RescheduleConflictDataDTO>
+                >(err)
             ) {
                 const statusCode = err.response?.status;
                 const errorBody = err.response?.data;
@@ -940,11 +1026,12 @@ export default function CreateRoom() {
     ]);
 
     useEffect(() => {
+        return;
         if (!id || !isOwner) return;
         let active = true;
 
         suggestionService
-            .checkPublishStatus(id)
+            .checkPublishStatus(id ?? '')
             .then((status) => {
                 if (!active) return;
                 setPublishStatus(status);
@@ -1187,13 +1274,12 @@ export default function CreateRoom() {
         <div className="h-[calc(100dvh-6rem)] w-full flex flex-col gap-6 overflow-hidden">
             {toast && (
                 <div
-                    className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${
-                        toast.type === 'success'
+                    className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${toast.type === 'success'
                             ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                             : toast.type === 'error'
-                              ? 'border-red-200 bg-red-50 text-red-700'
-                              : 'border-sky-200 bg-sky-50 text-sky-900'
-                    }`}
+                                ? 'border-red-200 bg-red-50 text-red-700'
+                                : 'border-sky-200 bg-sky-50 text-sky-900'
+                        }`}
                 >
                     {toast.text}
                 </div>
@@ -1242,7 +1328,7 @@ export default function CreateRoom() {
                         {t('tripSuggestions.publish.published')}
                     </Button>
                 )}
-                {isOwner && !publishStatus?.is_published && (
+                {isOwner && publishStatus && !publishStatus.is_published && (
                     <Button
                         className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
                         onClick={() => {
@@ -1261,7 +1347,9 @@ export default function CreateRoom() {
                         onClick={handleReschedule}
                         disabled={
                             rescheduleRequestStatus === 'rescheduling' ||
-                            rescheduleBaseStatus === 'loading_members'
+                            rescheduleBaseStatus === 'loading_members' ||
+                            rescheduleBaseStatus ===
+                            'waiting_for_member_analysis'
                         }
                     >
                         {rescheduleRequestStatus === 'rescheduling'
@@ -1339,6 +1427,7 @@ export default function CreateRoom() {
                     <RoomMembers
                         roomId={shareRoomId || id || ''}
                         tripId={id || ''}
+                        initialMembers={bootstrapMembers}
                     />
                 </TabsContent>
             </Tabs>
@@ -1659,9 +1748,7 @@ export default function CreateRoom() {
                         >
                             {publishSubmitting
                                 ? t('tripSuggestions.publish.publishing')
-                                : t(
-                                      'tripSuggestions.publish.confirmPublish',
-                                  )}
+                                : t('tripSuggestions.publish.confirmPublish')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1686,9 +1773,7 @@ export default function CreateRoom() {
                             {t('tripSuggestions.publish.unpublishTitle')}
                         </DialogTitle>
                         <DialogDescription>
-                            {t(
-                                'tripSuggestions.publish.unpublishDescription',
-                            )}
+                            {t('tripSuggestions.publish.unpublishDescription')}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -1711,9 +1796,7 @@ export default function CreateRoom() {
                         >
                             {publishSubmitting
                                 ? t('tripSuggestions.publish.unpublishing')
-                                : t(
-                                      'tripSuggestions.publish.confirmUnpublish',
-                                  )}
+                                : t('tripSuggestions.publish.confirmUnpublish')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -19,6 +19,7 @@ export interface RoomMemberLifestyleSubmission {
     room_id: number;
     user_id: number;
     username: string;
+    profile_image?: string | null;
     role: number;
     role_name: 'owner' | 'room_owner' | 'member' | 'spectator' | 'unknown';
     has_submitted_lifestyle: boolean;

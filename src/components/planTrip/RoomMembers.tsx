@@ -11,6 +11,7 @@ import {
     roomService,
     type RoomMemberLifestyleSubmission,
 } from '@/services/room.service';
+import type { PlanTripMember } from '@/services/trip.service';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +28,10 @@ import {
 interface RoomMembersProps {
     roomId: string;
     tripId: string;
+    initialMembers?: PlanTripMember[];
 }
+
+type RoomMemberRow = RoomMemberLifestyleSubmission | PlanTripMember;
 
 const AVATAR_COLORS = [
     'bg-primary',
@@ -61,15 +65,22 @@ function isOwnerMember(member: { role: number; role_name: string }): boolean {
     );
 }
 
-export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
+export default function RoomMembers({
+    roomId,
+    tripId,
+    initialMembers,
+}: RoomMembersProps) {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [members, setMembers] = useState<RoomMemberLifestyleSubmission[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [members, setMembers] = useState<RoomMemberRow[]>(
+        initialMembers ?? [],
+    );
+    const [loading, setLoading] = useState(initialMembers === undefined);
     const [error, setError] = useState<string | null>(null);
     const [removing, setRemoving] = useState<number | null>(null);
-    const [confirmMember, setConfirmMember] =
-        useState<RoomMemberLifestyleSubmission | null>(null);
+    const [confirmMember, setConfirmMember] = useState<RoomMemberRow | null>(
+        null,
+    );
 
     const fetchMembers = useCallback(async () => {
         if (!roomId) return;
@@ -103,9 +114,16 @@ export default function RoomMembers({ roomId, tripId }: RoomMembersProps) {
     }, [navigate, roomId, user?.id]);
 
     useEffect(() => {
+        if (initialMembers !== undefined) {
+            setMembers(initialMembers);
+            setLoading(false);
+            setError(null);
+            return;
+        }
+
         setLoading(true);
         void fetchMembers();
-    }, [fetchMembers]);
+    }, [fetchMembers, initialMembers]);
 
     useEffect(() => {
         if (!roomId) return;

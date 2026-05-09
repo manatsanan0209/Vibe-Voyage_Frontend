@@ -7,6 +7,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ImBin } from 'react-icons/im';
 import { Button } from '@/components/ui/button';
+import PlaceDetailHoverCard from '@/components/planTrip/PlaceDetailHoverCard';
 import type { PlaceType } from '@/types/place';
 import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
 import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
@@ -71,37 +72,46 @@ function SortableScheduleCard({
             }`}
         >
             <div className="absolute -left-7 top-1/2 -translate-x-1/2 -translate-y-1/2 size-3 rounded-full bg-primary ring-4 ring-background" />
-            <div className="flex items-start justify-between gap-4 rounded-2xl bg-secondary/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                <div className="min-w-0 flex-1">
-                    <p className="text-base font-semibold tracking-tight">
-                        {timeLabel}
-                    </p>
-                    <p className="mt-1 text-sm text-foreground/80">
-                        {item.place_name}
-                        {item.place_address ? `, ${item.place_address}` : ''}
-                    </p>
-                    <span
-                        className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${
-                            TYPE_STYLE[item.type]
-                        }`}
-                    >
-                        {item.type}
-                    </span>
+            <PlaceDetailHoverCard
+                placeName={item.place_name}
+                type={item.type}
+                status={item.place_detail_status}
+                detail={item.place_detail}
+            >
+                <div className="flex items-start justify-between gap-4 rounded-2xl bg-secondary/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-base font-semibold tracking-tight">
+                            {timeLabel}
+                        </p>
+                        <p className="mt-1 text-sm text-foreground/80">
+                            {item.place_name}
+                            {item.place_address
+                                ? `, ${item.place_address}`
+                                : ''}
+                        </p>
+                        <span
+                            className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-1.5 ${
+                                TYPE_STYLE[item.type]
+                            }`}
+                        >
+                            {item.type}
+                        </span>
+                    </div>
+                    {!readOnly && (
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
+                            type="button"
+                            aria-label="Delete"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => onDelete(item.id)}
+                        >
+                            <ImBin />
+                        </Button>
+                    )}
                 </div>
-                {!readOnly && (
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
-                        type="button"
-                        aria-label="Delete"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => onDelete(item.id)}
-                    >
-                        <ImBin />
-                    </Button>
-                )}
-            </div>
+            </PlaceDetailHoverCard>
         </div>
     );
 }
