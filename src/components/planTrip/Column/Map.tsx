@@ -95,9 +95,7 @@ function MapMarkerHoverPin({
             status={item.place_detail_status}
             detail={item.place_detail}
         >
-            <div
-                className="relative flex h-11 w-9 cursor-pointer items-start justify-center bg-transparent p-0 outline-none transition-transform duration-150 hover:-translate-y-1 focus-visible:-translate-y-1"
-            >
+            <div className="relative flex h-11 w-9 cursor-pointer items-start justify-center bg-transparent p-0 outline-none transition-transform duration-150 hover:-translate-y-1 focus-visible:-translate-y-1">
                 <span
                     className="z-10 flex size-8 items-center justify-center rounded-full border-2 text-sm font-bold text-white shadow-md ring-2 ring-white/90"
                     style={{
@@ -120,7 +118,11 @@ function MapMarkerHoverPin({
     );
 }
 
-function createMarkerContent(item: ScheduleItem, color: DayColor, order: number) {
+function createMarkerContent(
+    item: ScheduleItem,
+    color: DayColor,
+    order: number,
+) {
     const content = document.createElement('div');
     const root = createRoot(content);
 
@@ -142,7 +144,7 @@ function RouteDaySelector({
 
     return (
         <div
-            className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center gap-1.5 rounded-lg border border-border/80 bg-background/95 p-1.5 shadow-md backdrop-blur"
+            className="absolute left-3 right-14 top-3 z-10 flex items-center gap-1.5 overflow-x-auto rounded-lg border border-border/80 bg-background/95 p-1.5 shadow-md backdrop-blur [scrollbar-width:none] sm:right-3 [&::-webkit-scrollbar]:hidden"
             onPointerDown={(event) => event.stopPropagation()}
         >
             {schedule.map((day, dayIndex) => {
@@ -226,7 +228,13 @@ function GoogleMapCanvas({
             typeof selectedRouteDay === 'number' &&
             selectedRouteDay >= schedule.length
         ) {
-            setSelectedRouteDay(0);
+            let cancelled = false;
+            queueMicrotask(() => {
+                if (!cancelled) setSelectedRouteDay(0);
+            });
+            return () => {
+                cancelled = true;
+            };
         }
     }, [schedule.length, selectedRouteDay]);
 
@@ -236,7 +244,11 @@ function GoogleMapCanvas({
         const markers: google.maps.marker.AdvancedMarkerElement[] = [];
         const markerRoots: Root[] = [];
         const geocoder = new google.maps.Geocoder();
-        setResolvedDays([]);
+        let cancelled = false;
+
+        queueMicrotask(() => {
+            if (!cancelled) setResolvedDays([]);
+        });
 
         const resolvePosition = (
             item: ScheduleDay['items'][number],
@@ -265,8 +277,6 @@ function GoogleMapCanvas({
                 });
             });
         };
-
-        let cancelled = false;
 
         (async () => {
             const resolvedDays: ResolvedScheduleDay[] = [];
@@ -398,9 +408,7 @@ function GoogleMapCanvas({
                     });
                 } catch (e) {
                     console.warn(
-                        `Directions failed for day ${
-                            resolvedDay.dayIndex + 1
-                        }`,
+                        `Directions failed for day ${resolvedDay.dayIndex + 1}`,
                         e,
                     );
                 }

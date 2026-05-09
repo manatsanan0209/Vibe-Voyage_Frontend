@@ -258,7 +258,7 @@ export default function RoomPlanning({
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
         >
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 h-full min-h-0">
+            <div className="grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(12rem,0.85fr)_minmax(16rem,1.15fr)] gap-3 px-3 pb-20 md:grid-cols-2 md:grid-rows-none md:gap-2 md:px-0 md:pb-0 lg:grid-cols-3">
                 <SuggestionList
                     places={places}
                     onDelete={(id) => {
@@ -314,7 +314,7 @@ export default function RoomPlanning({
             {/* Floating Map button — only on smaller than lg */}
             <button
                 onClick={() => setShowMap(true)}
-                className="fixed bottom-6 right-6 z-40 lg:hidden flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
+                className="fixed right-4 bottom-4 z-40 flex items-center gap-1.5 rounded-full bg-primary px-4 py-3 text-primary-foreground shadow-lg transition-all hover:bg-primary/90 active:scale-95 md:right-6 md:bottom-6 lg:hidden"
             >
                 <MdMap className="w-5 h-5" />
                 <span className="text-sm font-semibold">{t('map.map')}</span>

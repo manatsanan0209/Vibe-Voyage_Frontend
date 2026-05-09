@@ -113,10 +113,11 @@ function AddPlaceDialog({
                             key={t}
                             type="button"
                             onClick={() => setSelectedType(t)}
-                            className={`flex-1 py-1.5 text-xs font-semibold rounded-full border transition-colors ${selectedType === t
+                            className={`flex-1 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                                selectedType === t
                                     ? TYPE_STYLE[t] + ' border-transparent'
                                     : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
-                                }`}
+                            }`}
                         >
                             {t}
                         </button>
@@ -227,10 +228,11 @@ function SortablePlaceCard({
             style={style}
             {...(!readOnly ? attributes : {})}
             {...(!readOnly ? listeners : {})}
-            className={`motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 ${readOnly
+            className={`motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 ${
+                readOnly
                     ? 'cursor-default'
                     : 'cursor-grab active:cursor-grabbing'
-                }`}
+            }`}
         >
             <PlaceDetailHoverCard
                 placeName={place.name}
@@ -239,10 +241,9 @@ function SortablePlaceCard({
                 detail={place.place_detail}
             >
                 <div
-                    className={`flex flex-row items-center justify-between rounded-xl border-2 border-indigo-600 bg-background px-5 py-4 shadow-sm transition-all duration-200 ${readOnly
-                            ? ''
-                            : 'hover:-translate-y-0.5 hover:shadow-md'
-                        }`}
+                    className={`flex flex-row items-center justify-between gap-3 rounded-xl border-2 border-indigo-600 bg-background px-3 py-3 shadow-sm transition-all duration-200 md:px-5 md:py-4 ${
+                        readOnly ? '' : 'hover:-translate-y-0.5 hover:shadow-md'
+                    }`}
                 >
                     <div className="flex flex-col gap-1 my-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">
@@ -252,8 +253,9 @@ function SortablePlaceCard({
                             {place.address}
                         </p>
                         <span
-                            className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${TYPE_STYLE[place.type]
-                                }`}
+                            className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${
+                                TYPE_STYLE[place.type]
+                            }`}
                         >
                             {place.type}
                         </span>
@@ -262,7 +264,7 @@ function SortablePlaceCard({
                         <Button
                             variant="outline"
                             size="icon"
-                            className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
+                            className="size-8 shrink-0 border border-border bg-background text-destructive hover:bg-destructive/10 md:size-9"
                             type="button"
                             aria-label="Delete"
                             onPointerDown={(e) => e.stopPropagation()}
@@ -286,15 +288,15 @@ export default function SuggestionList({
     const { setNodeRef } = useDroppable({ id: 'suggestion-list' });
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
-            <div className="w-10/12 mx-auto mt-4 shrink-0">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-white/80 shadow-sm md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
+            <div className="mx-auto mt-3 w-11/12 shrink-0 md:mt-4 md:w-10/12">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold tracking-tight">
+                    <h2 className="text-sm font-bold tracking-tight md:text-base">
                         Suggestion List
                     </h2>
                     <AddPlaceDialog onAdd={onAdd} readOnly={readOnly} />
                 </div>
-                <div className="mt-2 h-px w-40 bg-foreground/20" />
+                <div className="mt-2 h-px w-28 bg-foreground/20 md:w-40" />
             </div>
             <SortableContext
                 items={places.map((p) => p.id)}
@@ -302,7 +304,7 @@ export default function SuggestionList({
             >
                 <div
                     ref={setNodeRef}
-                    className="w-full px-8 mx-auto pt-2 mt-2 flex flex-col gap-4 overflow-y-auto flex-1 min-h-0 pb-4"
+                    className="mx-auto mt-2 flex min-h-0 w-full flex-1 flex-col gap-3 overflow-y-auto px-3 pt-2 pb-4 md:gap-4 md:px-8"
                 >
                     {places.map((place, index) => (
                         <SortablePlaceCard

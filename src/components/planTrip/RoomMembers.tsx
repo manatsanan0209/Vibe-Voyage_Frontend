@@ -228,8 +228,8 @@ export default function RoomMembers({
 
     return (
         <>
-            <div className="p-6 max-w-3xl mx-auto">
-                <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mx-auto max-w-3xl p-4 sm:p-6">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-base font-semibold text-foreground">
                         Members{' '}
                         <span className="text-foreground/40 font-normal">
@@ -241,7 +241,7 @@ export default function RoomMembers({
                         <Button
                             type="button"
                             size="sm"
-                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
                             onClick={handleOpenLifestyle}
                         >
                             Submit Lifestyle
@@ -250,7 +250,7 @@ export default function RoomMembers({
                 </div>
 
                 <div className="rounded-xl border border-foreground/8 overflow-hidden">
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-muted/80 px-4 py-2.5 text-xs font-semibold text-primary">
+                    <div className="hidden grid-cols-[1fr_auto_auto] items-center gap-4 bg-muted/80 px-4 py-2.5 text-xs font-semibold text-primary sm:grid">
                         <p>Name</p>
                         <p>Status</p>
                         <p className="w-8" />
@@ -259,7 +259,7 @@ export default function RoomMembers({
                     {members.map((member) => (
                         <div
                             key={member.user_id}
-                            className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-t border-foreground/6 px-4 py-3"
+                            className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 border-t border-foreground/6 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4"
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <Avatar>
@@ -272,7 +272,7 @@ export default function RoomMembers({
                                     </AvatarFallback>
                                 </Avatar>
 
-                                <div className="min-w-0 flex items-center gap-2">
+                                <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                                     <span className="text-sm font-medium text-foreground truncate">
                                         {member.username}
                                         {member.user_id === user?.id && (
@@ -302,10 +302,11 @@ export default function RoomMembers({
                             </div>
 
                             <p
-                                className={`text-sm font-medium ${member.has_submitted_lifestyle
+                                className={`col-start-1 text-sm font-medium sm:col-auto sm:text-right ${
+                                    member.has_submitted_lifestyle
                                         ? 'text-emerald-600'
                                         : 'text-amber-600'
-                                    }`}
+                                }`}
                             >
                                 {member.has_submitted_lifestyle
                                     ? 'Vibe Submitted'
@@ -317,7 +318,7 @@ export default function RoomMembers({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="size-8 text-foreground/30 hover:text-red-500 hover:bg-red-50 shrink-0"
+                                    className="col-start-2 row-span-2 row-start-1 size-8 shrink-0 self-center justify-self-end text-foreground/30 hover:bg-red-50 hover:text-red-500 sm:col-auto sm:row-auto sm:self-auto sm:justify-self-auto"
                                     disabled={
                                         removing === member.room_member_id
                                     }
@@ -328,7 +329,7 @@ export default function RoomMembers({
                             )}
 
                             {(!isOwner || member.role === 1) && (
-                                <span className="w-8" />
+                                <span className="hidden w-8 sm:block" />
                             )}
                         </div>
                     ))}

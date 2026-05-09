@@ -71,19 +71,19 @@ function SortableScheduleCard({
                     : 'cursor-grab active:cursor-grabbing'
             }`}
         >
-            <div className="absolute -left-7 top-1/2 -translate-x-1/2 -translate-y-1/2 size-3 rounded-full bg-primary ring-4 ring-background" />
+            <div className="absolute top-1/2 -left-6 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-4 ring-background md:-left-7" />
             <PlaceDetailHoverCard
                 placeName={item.place_name}
                 type={item.type}
                 status={item.place_detail_status}
                 detail={item.place_detail}
             >
-                <div className="flex items-start justify-between gap-4 rounded-2xl bg-secondary/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex items-start justify-between gap-3 rounded-2xl bg-secondary/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md md:gap-4 md:px-5 md:py-4">
                     <div className="min-w-0 flex-1">
-                        <p className="text-base font-semibold tracking-tight">
+                        <p className="text-sm font-semibold tracking-tight md:text-base">
                             {timeLabel}
                         </p>
-                        <p className="mt-1 text-sm text-foreground/80">
+                        <p className="mt-1 text-xs text-foreground/80 md:text-sm">
                             {item.place_name}
                             {item.place_address
                                 ? `, ${item.place_address}`
@@ -101,7 +101,7 @@ function SortableScheduleCard({
                         <Button
                             variant="outline"
                             size="icon"
-                            className="shrink-0 bg-background border border-border text-destructive hover:bg-destructive/10"
+                            className="size-8 shrink-0 border border-border bg-background text-destructive hover:bg-destructive/10 md:size-9"
                             type="button"
                             aria-label="Delete"
                             onPointerDown={(e) => e.stopPropagation()}
@@ -133,11 +133,11 @@ function DroppableDay({
     const isFull = day.items.length >= MAX_SLOTS_PER_DAY;
 
     return (
-        <section className="w-10/12 mx-auto">
+        <section className="mx-auto w-[calc(100%-1.5rem)] md:w-10/12">
             <div className="relative">
                 <div className="absolute left-3 top-3 bottom-0 border-l-2 border-dotted border-foreground/25" />
 
-                <div className="flex items-start gap-4 pl-10">
+                <div className="flex items-start gap-3 pl-9 md:gap-4 md:pl-10">
                     <div className="absolute left-3 top-0 -translate-x-1/2 z-10 flex size-8 items-center justify-center rounded-full bg-background ring-4 ring-border">
                         <div className="size-3.5 rounded-full bg-primary" />
                     </div>
@@ -146,7 +146,7 @@ function DroppableDay({
                             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
                                 {t('schedule.day')} {dayIndex + 1}
                             </p>
-                            <h3 className="text-base font-extrabold tracking-tight">
+                            <h3 className="text-sm font-extrabold tracking-tight md:text-base">
                                 {formatDate(day.date)}
                             </h3>
                         </div>
@@ -169,7 +169,7 @@ function DroppableDay({
                 >
                     <div
                         ref={setNodeRef}
-                        className="mt-5 flex flex-col gap-4 pl-10 min-h-16"
+                        className="mt-4 flex min-h-16 flex-col gap-3 pl-9 md:mt-5 md:gap-4 md:pl-10"
                     >
                         {day.items.map((item, index) => (
                             <SortableScheduleCard
@@ -201,15 +201,15 @@ export default function YourSchedule({
 }: YourScheduleProps) {
     const { t } = useI18n();
     return (
-        <div className="flex flex-col h-full overflow-hidden">
-            <div className="w-10/12 mx-auto mt-4 shrink-0">
-                <h2 className="text-base font-bold tracking-tight">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-white/80 shadow-sm md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
+            <div className="mx-auto mt-3 w-11/12 shrink-0 md:mt-4 md:w-10/12">
+                <h2 className="text-sm font-bold tracking-tight md:text-base">
                     {t('schedule.yourSchedule')}
                 </h2>
-                <div className="mt-2 h-px w-40 bg-foreground/20" />
+                <div className="mt-2 h-px w-28 bg-foreground/20 md:w-40" />
             </div>
 
-            <div className="pt-2 mt-2 flex flex-col gap-10 overflow-y-auto flex-1 min-h-0 pb-4">
+            <div className="mt-2 flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto pt-2 pb-4 md:gap-10">
                 {days.map((day, dayIndex) => (
                     <DroppableDay
                         key={day.id}

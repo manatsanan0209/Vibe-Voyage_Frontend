@@ -442,7 +442,7 @@ export default function CreateRoom() {
                 ? routeState.createdAt
                 : Date.now(),
     });
-    const saveScheduleRef = useRef<() => Promise<void>>(async () => { });
+    const saveScheduleRef = useRef<() => Promise<void>>(async () => {});
 
     useEffect(() => {
         setOpen(false);
@@ -635,9 +635,9 @@ export default function CreateRoom() {
                         err.response?.status === 404
                             ? 'Trip not found.'
                             : getApiErrorMessage(
-                                err,
-                                'Unable to load trip data.',
-                            ),
+                                  err,
+                                  'Unable to load trip data.',
+                              ),
                     );
                 }
                 setScheduleReadinessStatus('poll-error');
@@ -823,7 +823,7 @@ export default function CreateRoom() {
                 const backoffMs = Math.min(
                     POLLING_MAX_BACKOFF_MS,
                     scheduleReadinessPollIntervalRef.current *
-                    2 ** (pollFailureStreakRef.current - 1),
+                        2 ** (pollFailureStreakRef.current - 1),
                 );
                 nextPollAtRef.current = Date.now() + backoffMs;
 
@@ -1249,24 +1249,25 @@ export default function CreateRoom() {
     }
 
     return (
-        <div className="h-[calc(100dvh-6rem)] w-full flex flex-col gap-6 overflow-hidden">
+        <div className="flex h-[calc(100dvh-5rem)] w-full flex-col gap-3 overflow-hidden md:h-[calc(100dvh-6rem)] md:gap-6">
             {toast && (
                 <div
-                    className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${toast.type === 'success'
+                    className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${
+                        toast.type === 'success'
                             ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                             : toast.type === 'error'
-                                ? 'border-red-200 bg-red-50 text-red-700'
-                                : 'border-sky-200 bg-sky-50 text-sky-900'
-                        }`}
+                              ? 'border-red-200 bg-red-50 text-red-700'
+                              : 'border-sky-200 bg-sky-50 text-sky-900'
+                    }`}
                 >
                     {toast.text}
                 </div>
             )}
 
-            <div className="flex flex-row items-end justify-end gap-6 pr-6 shrink-0">
+            <div className="grid shrink-0 grid-cols-4 gap-1.5 px-3 md:flex md:flex-row md:items-end md:justify-end md:gap-6 md:px-0 md:pr-6">
                 <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
                     <PopoverTrigger asChild>
-                        <Button className="h-auto rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-transparent">
+                        <Button className="h-9 w-full shrink-0 rounded-md border-2 border-transparent bg-primary px-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 md:h-auto md:w-auto md:px-4 md:text-sm">
                             <MdMoreHoriz />
                             More
                         </Button>
@@ -1297,7 +1298,7 @@ export default function CreateRoom() {
                 </Popover>
                 {isOwner && publishStatus?.is_published && (
                     <Button
-                        className="h-auto rounded-md font-semibold bg-emerald-50 text-emerald-700 border-2 border-emerald-300 hover:bg-emerald-100"
+                        className="h-9 w-full shrink-0 rounded-md border-2 border-emerald-300 bg-emerald-50 px-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 md:h-auto md:w-auto md:px-4 md:text-sm"
                         onClick={() => {
                             setPublishError(null);
                             setUnpublishDialogOpen(true);
@@ -1308,7 +1309,7 @@ export default function CreateRoom() {
                 )}
                 {isOwner && publishStatus && !publishStatus.is_published && (
                     <Button
-                        className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
+                        className="h-9 w-full shrink-0 rounded-md border-2 border-primary bg-white px-1.5 text-xs font-semibold text-primary hover:bg-muted md:h-auto md:w-auto md:px-4 md:text-sm"
                         onClick={() => {
                             setPublishError(null);
                             setPublishTitle('');
@@ -1322,12 +1323,13 @@ export default function CreateRoom() {
                 {isOwner && (
                     <Button
                         type="button"
+                        className="h-9 w-full shrink-0 px-1.5 text-xs md:w-auto md:px-4 md:text-sm"
                         onClick={handleReschedule}
                         disabled={
                             rescheduleRequestStatus === 'rescheduling' ||
                             rescheduleBaseStatus === 'loading_members' ||
                             rescheduleBaseStatus ===
-                            'waiting_for_member_analysis'
+                                'waiting_for_member_analysis'
                         }
                     >
                         {rescheduleRequestStatus === 'rescheduling'
@@ -1337,11 +1339,11 @@ export default function CreateRoom() {
                 )}
                 {isOwner && (
                     <Button
-                        className="h-auto rounded-md font-semibold bg-white text-primary border-2 border-primary hover:bg-muted"
+                        className="h-9 w-full shrink-0 rounded-md border-2 border-primary bg-white px-1.5 text-xs font-semibold text-primary hover:bg-muted md:h-auto md:w-auto md:px-4 md:text-sm"
                         onClick={() => handleShareOpenChange(true)}
                     >
-                        <MdIosShare />
-                        Share
+                        <MdIosShare className="hidden sm:block" />
+                        <span>Share</span>
                     </Button>
                 )}
             </div>
@@ -1372,15 +1374,21 @@ export default function CreateRoom() {
                 </div>
             )}
 
-            <Tabs defaultValue="planning" className="flex-1 min-h-0">
+            <Tabs defaultValue="planning" className="min-h-0 flex-1">
                 <TabsList
                     variant="line"
-                    className="w-full justify-start rounded-lg bg-transparent border-b border-foreground/10 shrink-0 mb-4"
+                    className="mb-2 h-11 w-full shrink-0 justify-start overflow-hidden rounded-lg border-b border-foreground/10 bg-transparent px-4 md:mb-4 md:h-9 md:overflow-visible md:px-0"
                 >
-                    <TabsTrigger value="planning" className="text-base">
+                    <TabsTrigger
+                        value="planning"
+                        className="h-full flex-1 text-sm md:h-[calc(100%-1px)] md:flex-1 md:text-base"
+                    >
                         Planning Trip
                     </TabsTrigger>
-                    <TabsTrigger value="member" className="text-base">
+                    <TabsTrigger
+                        value="member"
+                        className="h-full flex-1 text-sm md:h-[calc(100%-1px)] md:flex-1 md:text-base"
+                    >
                         Members
                     </TabsTrigger>
                 </TabsList>
