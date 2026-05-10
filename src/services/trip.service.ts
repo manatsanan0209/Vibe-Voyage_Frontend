@@ -124,6 +124,7 @@ interface RawScheduleDay {
 
 interface GetScheduleResponseData {
     trip_id: number;
+    room_name?: string;
     destination_name: string;
     start_date: string;
     end_date: string;
@@ -132,6 +133,7 @@ interface GetScheduleResponseData {
 }
 
 export interface MappedScheduleResponseData {
+    room_name?: string;
     suggestions: PlaceSuggestion[];
     days: ScheduleDayResponseDTO[];
 }
@@ -177,6 +179,7 @@ export interface RescheduleReadinessDTO {
 export interface PlanTripBootstrapDTO {
     trip_id: number;
     room_id: number;
+    room_name?: string;
     current_user: PlanTripCurrentUser;
     schedule: GetScheduleResponseData;
     members: PlanTripMember[];
@@ -342,7 +345,7 @@ function mapScheduleResponse(
             };
         });
 
-    return { suggestions, days };
+    return { room_name: raw.room_name, suggestions, days };
 }
 
 // ---------- service ----------
@@ -386,9 +389,7 @@ export const tripService = {
         return mapScheduleResponse(data.data);
     },
 
-    async getPlanTripBootstrap(
-        tripId: string,
-    ): Promise<
+    async getPlanTripBootstrap(tripId: string): Promise<
         Omit<PlanTripBootstrapDTO, 'schedule'> & {
             schedule: MappedScheduleResponseData;
         }
@@ -420,7 +421,9 @@ export const tripService = {
     },
 
     async rescheduleTrip(tripId: string): Promise<RescheduleTripSuccessDTO> {
-        const { data } = await axios.post<ApiResponseDTO<RescheduleTripSuccessDTO>>(
+        const { data } = await axios.post<
+            ApiResponseDTO<RescheduleTripSuccessDTO>
+        >(
             `${apiBaseUrl}/trip/${tripId}/reschedule`,
             {},
             {
