@@ -5,9 +5,8 @@ import type { Step1Data, Destination } from './Step1TripInfo';
 import Step2TravelVibe from './Step2TravelVibe';
 import Step3Priorities from './Step3Priorities';
 import { tripService } from '@/services/trip.service';
+import { placeService } from '@/services/place.service';
 import { emitCacheInvalidation } from '@/lib/cache-events';
-import type { ApiResponseDTO } from '@/types/api';
-import type { District } from '@/types/place';
 
 // ---------- toggle helper ----------
 
@@ -64,7 +63,9 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [destinations, setDestinations] = useState<Destination[]>([]);
-    const [districtToProvince, setDistrictToProvince] = useState<Map<string, string>>(new Map());
+    const [districtToProvince, setDistrictToProvince] = useState<
+        Map<string, string>
+    >(new Map());
     const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
 
     useEffect(() => {
@@ -72,12 +73,11 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
         const fetchDestinations = async () => {
             setIsLoadingDestinations(true);
             try {
-                const res = await fetch('http://localhost:8080/api/places/districts');
-                const json: ApiResponseDTO<District[]> = await res.json();
+                const districts = await placeService.fetchDistrictData();
                 if (cancelled) return;
 
                 const seenProvinces = new Map<string, string>();
-                json.data.forEach((district) => {
+                districts.forEach((district) => {
                     if (!seenProvinces.has(district.province.province_id)) {
                         seenProvinces.set(
                             district.province.province_id,
@@ -86,17 +86,24 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                     }
                 });
 
-                const provinceEntries: Destination[] = Array.from(seenProvinces.entries())
+                const provinceEntries: Destination[] = Array.from(
+                    seenProvinces.entries(),
+                )
                     .sort((a, b) => a[1].localeCompare(b[1], 'th'))
-                    .map(([id, name]) => ({ value: `province_${id}`, label: name }));
+                    .map(([id, name]) => ({
+                        value: `province_${id}`,
+                        label: name,
+                    }));
 
-                const districtEntries: Destination[] = json.data.map((district) => ({
-                    value: district.district_id,
-                    label: `${district.district_name_th}, ${district.province.province_name_th}`,
-                }));
+                const districtEntries: Destination[] = districts.map(
+                    (district) => ({
+                        value: district.district_id,
+                        label: `${district.district_name_th}, ${district.province.province_name_th}`,
+                    }),
+                );
 
                 const dpMap = new Map<string, string>();
-                json.data.forEach((district) =>
+                districts.forEach((district) =>
                     dpMap.set(district.district_id, district.province_id),
                 );
 
@@ -109,7 +116,9 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
             }
         };
         void fetchDestinations();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     async function handleSubmit() {
@@ -167,7 +176,10 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
             )}
 
             {submitError && (
-                <p className="text-sm text-destructive text-center" role="alert">
+                <p
+                    className="text-sm text-destructive text-center"
+                    role="alert"
+                >
                     {submitError}
                 </p>
             )}
@@ -184,12 +196,13 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                             {/* Circle */}
                             <div className="flex flex-col items-center gap-1 shrink-0">
                                 <span
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-300 ${n < step
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-300 ${
+                                        n < step
                                             ? 'bg-primary border-primary text-primary-foreground'
                                             : n === step
-                                                ? 'bg-card border-primary text-primary shadow-sm'
-                                                : 'bg-card border-border text-muted-foreground'
-                                        }`}
+                                              ? 'bg-card border-primary text-primary shadow-sm'
+                                              : 'bg-card border-border text-muted-foreground'
+                                    }`}
                                 >
                                     {n < step ? (
                                         <svg
@@ -215,10 +228,9 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                             {/* Connecting line (not after last) */}
                             {i < 2 && (
                                 <div
-                                    className={`flex-1 h-0.5 mx-1 transition-all duration-300 ${n < step
-                                            ? 'bg-primary'
-                                            : 'bg-border'
-                                        }`}
+                                    className={`flex-1 h-0.5 mx-1 transition-all duration-300 ${
+                                        n < step ? 'bg-primary' : 'bg-border'
+                                    }`}
                                 />
                             )}
                         </Fragment>

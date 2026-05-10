@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DestinationSelect } from '@/components/createTrip/DestinationSelect';
 import { DatePickerInput } from '@/components/createTrip/DatePickerInput';
 import { useI18n } from '@/hooks/useI18n';
-import type { ApiResponseDTO } from '@/types/api';
-import type { District } from '@/types/place';
+import { placeService } from '@/services/place.service';
 import location from '@/assets/location.png';
 
 type Destination = {
@@ -28,38 +27,8 @@ export default function PlanYourTrip() {
         const fetchDestinations = async () => {
             setIsLoadingDestinations(true);
             try {
-                const res = await fetch(
-                    'http://localhost:8080/api/places/districts',
-                );
-                const json: ApiResponseDTO<District[]> = await res.json();
-
-                const seenProvinces = new Map<string, string>();
-                json.data.forEach((district) => {
-                    if (!seenProvinces.has(district.province.province_id)) {
-                        seenProvinces.set(
-                            district.province.province_id,
-                            district.province.province_name_th,
-                        );
-                    }
-                });
-
-                const provinceEntries: Destination[] = Array.from(
-                    seenProvinces.entries(),
-                )
-                    .sort((a, b) => a[1].localeCompare(b[1], 'th'))
-                    .map(([id, name]) => ({
-                        value: `province_${id}`,
-                        label: name,
-                    }));
-
-                const districtEntries: Destination[] = json.data.map(
-                    (district) => ({
-                        value: district.district_id,
-                        label: `${district.district_name_th}, ${district.province.province_name_th}`,
-                    }),
-                );
-
-                setDestinations([...provinceEntries, ...districtEntries]);
+                const destinationOptions = await placeService.fetchDistricts();
+                setDestinations(destinationOptions);
             } catch (err) {
                 console.error('Failed to fetch districts:', err);
             } finally {

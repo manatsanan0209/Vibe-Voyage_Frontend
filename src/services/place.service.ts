@@ -17,13 +17,19 @@ export type AttractionOption = {
 };
 
 export const placeService = {
-    async fetchDistricts(): Promise<DestinationOption[]> {
+    async fetchDistrictData(): Promise<District[]> {
         const { data } = await axios.get<ApiResponseDTO<District[]>>(
             `${apiBaseUrl}/places/districts`,
         );
 
+        return data.data;
+    },
+
+    async fetchDistricts(): Promise<DestinationOption[]> {
+        const districts = await this.fetchDistrictData();
+
         const seenProvinces = new Map<string, string>();
-        data.data.forEach((d) => {
+        districts.forEach((d) => {
             if (!seenProvinces.has(d.province.province_id)) {
                 seenProvinces.set(
                     d.province.province_id,
@@ -41,7 +47,7 @@ export const placeService = {
                 label: name,
             }));
 
-        const districtEntries: DestinationOption[] = data.data.map((d) => ({
+        const districtEntries: DestinationOption[] = districts.map((d) => ({
             value: d.district_id,
             label: `${d.district_name_th}, ${d.province.province_name_th}`,
         }));
