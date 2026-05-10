@@ -153,6 +153,7 @@ export default function CreateTrip({ initialData }: CreateTripProps) {
                 state: {
                     fromCreateTrip: true,
                     createdAt: Date.now(),
+                    roomName: step1Data?.tripName ?? '',
                 },
             });
         } catch (err) {

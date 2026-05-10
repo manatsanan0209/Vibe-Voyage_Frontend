@@ -92,6 +92,7 @@ type RoomRouteState = {
     fromCreateTrip?: boolean;
     createdAt?: number;
     lifestyleSubmitted?: boolean;
+    roomName?: string;
 };
 
 type InviteExpireChoice = '12h' | '1d' | '3d' | '7d' | 'unlimited';
@@ -340,7 +341,7 @@ export default function CreateRoom() {
     const navigate = useNavigate();
     const location = useLocation();
     const { setOpen } = useSidebar();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const { formatDate, formatTime } = useSettings();
     const { t } = useI18n();
     const routeState = (location.state as RoomRouteState | null) ?? null;
@@ -357,6 +358,9 @@ export default function CreateRoom() {
 
     const [places, setPlaces] = useState<PlaceSuggestion[]>([]);
     const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
+    const [tripName, setTripName] = useState(
+        routeState?.roomName?.trim() ?? '',
+    );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shareOpen, setShareOpen] = useState(false);
@@ -573,6 +577,12 @@ export default function CreateRoom() {
                 setCanManageRoom(bootstrap.current_user.can_manage_room);
                 setShareRoomId(String(bootstrap.room_id || id));
                 setBootstrapMembers(bootstrap.members);
+                const bootstrapTripName =
+                    bootstrap.room_name?.trim() ||
+                    bootstrap.schedule.room_name?.trim();
+                if (bootstrapTripName) {
+                    setTripName(bootstrapTripName);
+                }
                 applyRescheduleReadiness(bootstrap.reschedule_readiness);
                 setPublishStatus(bootstrap.publish_status);
                 initializedRef.current = true;
@@ -658,6 +668,38 @@ export default function CreateRoom() {
         navigate,
         routeState?.createdAt,
     ]);
+
+    useEffect(() => {
+        if (tripName || !user?.id || !id) return;
+
+        let active = true;
+
+        roomService
+            .getUserRooms(user.id)
+            .then((rooms) => {
+                if (!active) return;
+
+                const room = rooms.find(
+                    (candidate) =>
+                        String(candidate.room_id) === String(shareRoomId) ||
+                        String(candidate.trip_id) === String(id),
+                );
+                if (room?.room_name) {
+                    setTripName(room.room_name);
+                }
+            })
+            .catch((err) => {
+                if (axios.isAxiosError(err) && err.response?.status === 401) {
+                    handleUnauthorized();
+                    return;
+                }
+                console.error('[CreateRoom] Failed to load room name:', err);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [handleUnauthorized, id, shareRoomId, tripName, user?.id]);
 
     useEffect(() => {
         const roomIdForSubmissions = shareRoomId || id;
@@ -1248,6 +1290,8 @@ export default function CreateRoom() {
         inviteHistoryButtonLabel = 'รีเฟรช';
     }
 
+    const displayTripName = tripName || 'Trip';
+
     return (
         <div className="flex h-[calc(100dvh-5rem)] w-full flex-col gap-3 overflow-hidden md:h-[calc(100dvh-6rem)] md:gap-6">
             {toast && (
@@ -1264,88 +1308,100 @@ export default function CreateRoom() {
                 </div>
             )}
 
-            <div className="grid shrink-0 grid-cols-4 gap-1.5 px-3 md:flex md:flex-row md:items-end md:justify-end md:gap-6 md:px-0 md:pr-6">
-                <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
-                    <PopoverTrigger asChild>
-                        <Button className="h-9 w-full shrink-0 rounded-md border-2 border-transparent bg-primary px-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 md:h-auto md:w-auto md:px-4 md:text-sm">
-                            <MdMoreHoriz />
-                            More
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-44 p-1">
-                        {isOwner && (
+            <div className="flex shrink-0 flex-col gap-2 px-3 md:flex-row md:items-center md:justify-between md:px-0 md:pr-6">
+                <div className="min-w-0 md:flex-1 md:pl-6">
+                    <h1
+                        className="truncate text-lg font-bold leading-tight text-primary sm:text-xl md:text-2xl"
+                        title={displayTripName}
+                    >
+                        {displayTripName}
+                    </h1>
+                </div>
+                <div className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-4 md:flex md:w-auto md:shrink-0 md:flex-row md:items-center md:justify-end md:gap-6">
+                    <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+                        <PopoverTrigger asChild>
+                            <Button className="h-9 w-full shrink-0 rounded-md border-2 border-transparent bg-primary px-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 md:h-auto md:w-auto md:px-4 md:text-sm">
+                                <MdMoreHoriz />
+                                More
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-44 p-1">
+                            {isOwner && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="w-full justify-start"
+                                    onClick={() => {
+                                        setMoreMenuOpen(false);
+                                        setSettingsOpen(true);
+                                    }}
+                                >
+                                    Room Settings
+                                </Button>
+                            )}
                             <Button
                                 type="button"
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={handleOpenLeaveDialog}
+                            >
+                                Leave room
+                            </Button>
+                        </PopoverContent>
+                    </Popover>
+                    {isOwner && publishStatus?.is_published && (
+                        <Button
+                            className="h-9 w-full shrink-0 rounded-md border-2 border-emerald-300 bg-emerald-50 px-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 md:h-auto md:w-auto md:px-4 md:text-sm"
+                            onClick={() => {
+                                setPublishError(null);
+                                setUnpublishDialogOpen(true);
+                            }}
+                        >
+                            {t('tripSuggestions.publish.published')}
+                        </Button>
+                    )}
+                    {isOwner &&
+                        publishStatus &&
+                        !publishStatus.is_published && (
+                            <Button
+                                className="h-9 w-full shrink-0 rounded-md border-2 border-primary bg-white px-1.5 text-xs font-semibold text-primary hover:bg-muted md:h-auto md:w-auto md:px-4 md:text-sm"
                                 onClick={() => {
-                                    setMoreMenuOpen(false);
-                                    setSettingsOpen(true);
+                                    setPublishError(null);
+                                    setPublishTitle('');
+                                    setPublishDescription('');
+                                    setPublishDialogOpen(true);
                                 }}
                             >
-                                Room Settings
+                                {t('tripSuggestions.publish.publish')}
                             </Button>
                         )}
+                    {isOwner && (
                         <Button
                             type="button"
-                            variant="ghost"
-                            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={handleOpenLeaveDialog}
+                            className="h-9 w-full shrink-0 px-1.5 text-xs md:w-auto md:px-4 md:text-sm"
+                            onClick={handleReschedule}
+                            disabled={
+                                rescheduleRequestStatus === 'rescheduling' ||
+                                rescheduleBaseStatus === 'loading_members' ||
+                                rescheduleBaseStatus ===
+                                    'waiting_for_member_analysis'
+                            }
                         >
-                            Leave room
+                            {rescheduleRequestStatus === 'rescheduling'
+                                ? 'Re-scheduling...'
+                                : 'Re-schedule'}
                         </Button>
-                    </PopoverContent>
-                </Popover>
-                {isOwner && publishStatus?.is_published && (
-                    <Button
-                        className="h-9 w-full shrink-0 rounded-md border-2 border-emerald-300 bg-emerald-50 px-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 md:h-auto md:w-auto md:px-4 md:text-sm"
-                        onClick={() => {
-                            setPublishError(null);
-                            setUnpublishDialogOpen(true);
-                        }}
-                    >
-                        {t('tripSuggestions.publish.published')}
-                    </Button>
-                )}
-                {isOwner && publishStatus && !publishStatus.is_published && (
-                    <Button
-                        className="h-9 w-full shrink-0 rounded-md border-2 border-primary bg-white px-1.5 text-xs font-semibold text-primary hover:bg-muted md:h-auto md:w-auto md:px-4 md:text-sm"
-                        onClick={() => {
-                            setPublishError(null);
-                            setPublishTitle('');
-                            setPublishDescription('');
-                            setPublishDialogOpen(true);
-                        }}
-                    >
-                        {t('tripSuggestions.publish.publish')}
-                    </Button>
-                )}
-                {isOwner && (
-                    <Button
-                        type="button"
-                        className="h-9 w-full shrink-0 px-1.5 text-xs md:w-auto md:px-4 md:text-sm"
-                        onClick={handleReschedule}
-                        disabled={
-                            rescheduleRequestStatus === 'rescheduling' ||
-                            rescheduleBaseStatus === 'loading_members' ||
-                            rescheduleBaseStatus ===
-                                'waiting_for_member_analysis'
-                        }
-                    >
-                        {rescheduleRequestStatus === 'rescheduling'
-                            ? 'Re-scheduling...'
-                            : 'Re-schedule'}
-                    </Button>
-                )}
-                {isOwner && (
-                    <Button
-                        className="h-9 w-full shrink-0 rounded-md border-2 border-primary bg-white px-1.5 text-xs font-semibold text-primary hover:bg-muted md:h-auto md:w-auto md:px-4 md:text-sm"
-                        onClick={() => handleShareOpenChange(true)}
-                    >
-                        <MdIosShare className="hidden sm:block" />
-                        <span>Share</span>
-                    </Button>
-                )}
+                    )}
+                    {isOwner && (
+                        <Button
+                            className="h-9 w-full shrink-0 rounded-md border-2 border-primary bg-white px-1.5 text-xs font-semibold text-primary hover:bg-muted md:h-auto md:w-auto md:px-4 md:text-sm"
+                            onClick={() => handleShareOpenChange(true)}
+                        >
+                            <MdIosShare className="hidden sm:block" />
+                            <span>Share</span>
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {!canEdit && (
@@ -1744,6 +1800,7 @@ export default function CreateRoom() {
                 open={settingsOpen}
                 onOpenChange={setSettingsOpen}
                 roomId={shareRoomId || id || ''}
+                onSettingsSaved={(name) => setTripName(name)}
             />
 
             {/* Unpublish dialog */}

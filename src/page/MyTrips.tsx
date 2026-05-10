@@ -259,7 +259,9 @@ export default function MyTrips() {
                                 clickable={Boolean(room.trip_id)}
                                 onClick={() => {
                                     if (!room.trip_id) return;
-                                    navigate(`/your-trips/${room.trip_id}`);
+                                    navigate(`/your-trips/${room.trip_id}`, {
+                                        state: { roomName: room.room_name },
+                                    });
                                 }}
                             />
                         ))}

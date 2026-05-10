@@ -76,10 +76,7 @@ export default function UseAsTemplateDialog({
 
     // minimum end date = start + (originalDays - 1) days
     const minEndDate = startDate
-        ? format(
-              addDays(parseISO(startDate), originalDays - 1),
-              'yyyy-MM-dd',
-          )
+        ? format(addDays(parseISO(startDate), originalDays - 1), 'yyyy-MM-dd')
         : today;
 
     const selectedDays =
@@ -87,8 +84,11 @@ export default function UseAsTemplateDialog({
             ? differenceInDays(parseISO(endDate), parseISO(startDate)) + 1
             : 0;
 
-    const durationShort =
-        !!(startDate && endDate && selectedDays < originalDays);
+    const durationShort = !!(
+        startDate &&
+        endDate &&
+        selectedDays < originalDays
+    );
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -110,7 +110,11 @@ export default function UseAsTemplateDialog({
             onOpenChange(false);
             resetForm();
             navigate(`/your-trips/${result.trip_id}`, {
-                state: { fromCreateTrip: true, createdAt: Date.now() },
+                state: {
+                    fromCreateTrip: true,
+                    createdAt: Date.now(),
+                    roomName: roomName.trim(),
+                },
             });
         } catch (err) {
             setError(getApiErrorMessage(err, lang));
@@ -185,16 +189,17 @@ export default function UseAsTemplateDialog({
                             {lang === 'th'
                                 ? `ต้องเลือกอย่างน้อย ${originalDays} วัน`
                                 : `Minimum ${originalDays} day${originalDays > 1 ? 's' : ''} required`}
-                            {selectedDays > 0 && selectedDays > originalDays && (
-                                <span className="ml-1 text-amber-600">
-                                    ({selectedDays} {t('tripSuggestions.days')}{' '}
-                                    —{' '}
-                                    {lang === 'th'
-                                        ? `${selectedDays - originalDays} วันจะว่างเปล่า`
-                                        : `${selectedDays - originalDays} day${selectedDays - originalDays > 1 ? 's' : ''} will be empty`}
-                                    )
-                                </span>
-                            )}
+                            {selectedDays > 0 &&
+                                selectedDays > originalDays && (
+                                    <span className="ml-1 text-amber-600">
+                                        ({selectedDays}{' '}
+                                        {t('tripSuggestions.days')} —{' '}
+                                        {lang === 'th'
+                                            ? `${selectedDays - originalDays} วันจะว่างเปล่า`
+                                            : `${selectedDays - originalDays} day${selectedDays - originalDays > 1 ? 's' : ''} will be empty`}
+                                        )
+                                    </span>
+                                )}
                         </p>
                     </div>
 
@@ -206,9 +211,7 @@ export default function UseAsTemplateDialog({
                         </p>
                     )}
 
-                    {error && (
-                        <p className="text-sm text-red-600">{error}</p>
-                    )}
+                    {error && <p className="text-sm text-red-600">{error}</p>}
 
                     <DialogFooter className="gap-2">
                         <Button
