@@ -190,7 +190,7 @@ export default function MyTrips() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-10 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-10 md:grid-cols-3 xl:grid-cols-4">
                     {showNewTripCard && <NewTripCard />}
 
                     {loading && (
@@ -201,7 +201,7 @@ export default function MyTrips() {
                                     : 'col-span-full sm:col-span-2 md:col-span-3 xl:col-span-4'
                             }`}
                         >
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
                                 <Skeleton className="h-52 w-full rounded-xl" />
                                 <Skeleton className="h-52 w-full rounded-xl" />
                                 <Skeleton className="h-52 w-full rounded-xl" />

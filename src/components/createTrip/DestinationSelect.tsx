@@ -48,7 +48,7 @@ export function DestinationSelect({
                     role="combobox"
                     aria-expanded={open}
                     disabled={isLoading}
-                    className="h-10 w-full min-w-0 justify-between bg-white font-normal"
+                    className="h-10 w-full min-w-0 justify-between bg-white text-base font-normal md:text-sm"
                 >
                     <span className="min-w-0 flex-1 truncate text-left">
                         {isLoading ? (

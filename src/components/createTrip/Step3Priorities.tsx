@@ -324,7 +324,7 @@ export default function Step3Priorities({
                         onChange={(e) => onExtra(e.target.value)}
                         placeholder="Tell us more about your travel lifestyle for this voyage"
                         rows={2}
-                        className="w-full resize-none rounded-[18px] border border-primary/10 bg-linear-to-br from-white to-muted/40 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                        className="w-full resize-none rounded-[18px] border border-primary/10 bg-[linear-gradient(to_bottom_right,#fff,rgba(245,243,255,0.4))] px-4 py-2 text-sm text-slate-950 caret-slate-950 placeholder:text-slate-500 focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
                     />
                 </CardContent>
 
@@ -332,7 +332,8 @@ export default function Step3Priorities({
                     <Button
                         type="button"
                         onClick={onBack}
-                        className="w-32 h-10 text-black font-semibold bg-gray-400/30 hover:bg-gray-400/20 backdrop-blur-sm"
+                        variant="outline"
+                        className="w-32 h-10 border-primary/25 bg-background/80 text-foreground font-semibold hover:bg-primary/10 hover:text-primary dark:border-primary/35 dark:bg-white/10 dark:text-white dark:hover:bg-primary/20 dark:hover:text-white backdrop-blur-sm"
                     >
                         <IoArrowBack className="size-5" />
                         Back

@@ -59,7 +59,7 @@ export default function InformationForm({ onNext }: InformationFormProps) {
                 </p>
                 <Input
                     type="text"
-                    className="h-10 bg-background w-full"
+                    className="h-10 w-full border-primary/20 bg-background shadow-sm focus-visible:border-primary/35 focus-visible:ring-primary/15"
                     placeholder="Your Trip Name"
                 />
 

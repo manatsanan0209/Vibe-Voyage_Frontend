@@ -203,7 +203,8 @@ export default function Step2TravelVibe({
                     <Button
                         type="button"
                         onClick={onBack}
-                        className="w-32 h-10 text-black font-semibold bg-gray-400/30 hover:bg-gray-400/20 backdrop-blur-sm"
+                        variant="outline"
+                        className="w-32 h-10 border-primary/25 bg-background/80 text-foreground font-semibold hover:bg-primary/10 hover:text-primary dark:border-primary/35 dark:bg-white/10 dark:text-white dark:hover:bg-primary/20 dark:hover:text-white backdrop-blur-sm"
                     >
                         <IoArrowBack className="size-5" />
                         Back

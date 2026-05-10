@@ -139,7 +139,7 @@ export function PreferredDestinations({
                 <p className="text-sm font-semibold">
                     Add preferred destination
                 </p>
-                <span className="text-xs font-medium text-muted-foreground">
+                <span className="text-xs font-medium text-pink-500">
                     * not required
                 </span>
             </div>

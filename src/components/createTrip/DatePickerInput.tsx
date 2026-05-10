@@ -50,7 +50,7 @@ export function DatePickerInput({
                 <Button
                     variant="outline"
                     className={cn(
-                        'h-10 w-44 max-w-full justify-start bg-white font-normal',
+                        'h-10 w-44 max-w-full justify-start bg-white text-base font-normal md:text-sm',
                         !value && 'text-muted-foreground',
                         className,
                     )}
@@ -62,7 +62,7 @@ export function DatePickerInput({
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="max-w-[calc(100vw-1rem)] overflow-auto p-0"
+                className="w-fit max-w-[calc(100vw-1rem)] overflow-auto p-0"
                 align="start"
                 side="bottom"
                 collisionPadding={8}

@@ -164,7 +164,7 @@ export default function Step1TripInfo({
                                     setTripName(e.target.value);
                                     if (e.target.value.trim()) setErrors((prev) => ({ ...prev, tripName: undefined }));
                                 }}
-                                className={`h-10 w-full border-white/70 bg-white/90 shadow-none ${errors.tripName ? 'border-red-400' : ''}`}
+                                className={`h-10 w-full border-primary/20 bg-white/95 shadow-sm focus-visible:border-primary/35 focus-visible:ring-primary/15 ${errors.tripName ? 'border-red-400' : ''}`}
                                 placeholder="Your Trip Name"
                             />
                             {errors.tripName && (
