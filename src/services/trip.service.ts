@@ -7,7 +7,7 @@ import type {
     PlaceType,
 } from '@/types/place';
 import type { PublishCheckResponseDTO } from '@/types/suggestion';
-import { STORAGE_KEYS } from '@/lib/constants';
+import { STORAGE_KEYS, TIME_SLOTS } from '@/lib/constants';
 
 function normalizeType(raw: string): PlaceType {
     const map: Record<string, PlaceType> = {
@@ -249,20 +249,13 @@ export interface TripScheduleItemResponseDTO {
     type: string;
 }
 
-const SLOT_TIMES = [
-    { start: '08:30', end: '10:30' },
-    { start: '10:30', end: '12:30' },
-    { start: '12:30', end: '14:30' },
-    { start: '14:30', end: '16:30' },
-];
-
 function mapScheduleResponse(
     raw: GetScheduleResponseData,
 ): MappedScheduleResponseData {
     const mapItem = (item: RawScheduleItem): ScheduleItemResponseDTO => {
         const slot =
-            SLOT_TIMES[item.sequence_order - 1] ??
-            SLOT_TIMES[SLOT_TIMES.length - 1];
+            TIME_SLOTS[item.sequence_order - 1] ??
+            TIME_SLOTS[TIME_SLOTS.length - 1];
         return {
             id: String(item.trip_schedule_id),
             place_id: item.place_id,
