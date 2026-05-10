@@ -15,20 +15,13 @@ import SuggestionList from './Column/SuggestionList';
 import YourSchedule from './Column/YourSchedule';
 import type { PlaceSuggestion } from '@/types/place';
 import type { ScheduleDay, ScheduleItem } from '@/types/schedule';
-import { MAX_SLOTS_PER_DAY } from '@/lib/constants';
+import { MAX_SLOTS_PER_DAY, TIME_SLOTS } from '@/lib/constants';
 import { useSettings } from '@/context/SettingsContext';
 import { useI18n } from '@/hooks/useI18n';
 
-const SLOT_TIMES = [
-    { start: '08:30', end: '10:30' },
-    { start: '10:30', end: '12:30' },
-    { start: '12:30', end: '14:30' },
-    { start: '14:30', end: '16:30' },
-];
-
 function reorderItems(items: ScheduleDay['items']): ScheduleDay['items'] {
     return items.map((item, idx) => {
-        const slot = SLOT_TIMES[idx] ?? SLOT_TIMES[SLOT_TIMES.length - 1];
+        const slot = TIME_SLOTS[idx] ?? TIME_SLOTS[TIME_SLOTS.length - 1];
         return {
             ...item,
             sequence_order: idx,
