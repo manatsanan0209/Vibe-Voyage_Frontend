@@ -82,6 +82,7 @@ body {
     --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.551 0.027 264.364);
+    color-scheme: dark;
 }
 
 @theme inline {
@@ -144,5 +145,71 @@ body {
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer utilities {
+    /*
+     * Legacy dark-mode bridge.
+     *
+     * Several older screens still use hard-coded Tailwind whites/grays for
+     * cards, chips, inputs and helper text. When the root .dark class flips the
+     * app foreground to a light color, those fixed white surfaces make text
+     * nearly invisible. These overrides map the common legacy utilities back to
+     * the app theme tokens without changing deliberately white text on buttons
+     * or image overlays.
+     */
+    .dark .bg-white,
+    .dark .hover\:bg-white:hover {
+        background-color: var(--card);
+    }
+
+    .dark .bg-white\/70,
+    .dark .bg-white\/72,
+    .dark .bg-white\/75,
+    .dark .bg-white\/80,
+    .dark .bg-white\/90 {
+        background-color: color-mix(
+            in oklch,
+            var(--card) 82%,
+            transparent
+        );
+    }
+
+    .dark .bg-gray-50,
+    .dark .bg-gray-100,
+    .dark .bg-slate-50,
+    .dark .hover\:bg-gray-50:hover,
+    .dark .hover\:bg-gray-100:hover {
+        background-color: var(--muted);
+    }
+
+    .dark .border-gray-200,
+    .dark .border-gray-300,
+    .dark .border-gray-400,
+    .dark .border-white\/60,
+    .dark .border-white\/70 {
+        border-color: var(--border);
+    }
+
+    .dark .text-gray-900,
+    .dark .text-gray-800,
+    .dark .text-gray-700 {
+        color: var(--foreground);
+    }
+
+    .dark .text-gray-600,
+    .dark .text-gray-500,
+    .dark .text-gray-400 {
+        color: var(--muted-foreground);
+    }
+
+    .dark .placeholder\:text-gray-500::placeholder {
+        color: var(--muted-foreground);
+    }
+
+    .dark [role='switch'] .bg-white,
+    .dark [aria-pressed='true'] .bg-white {
+        background-color: #ffffff;
     }
 }
