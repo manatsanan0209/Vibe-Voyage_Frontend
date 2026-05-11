@@ -8,17 +8,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import bgImage from '@/assets/bg.jpeg';
 import logoImage from '@/assets/Vibe-voyage-Logo.png';
-import photoSpotImage from '@/assets/createTrip/photo_spot.png';
-import mountainImage from '@/assets/createTrip/mountain.png';
 import natureImage from '@/assets/createTrip/nature.png';
 import localCultureImage from '@/assets/createTrip/local_culture.png';
+import waveImage from '@/assets/aboutUs/wave.jpg';
+import ployImage from '@/assets/aboutUs/ploy.jpg';
 import { useI18n } from '@/hooks/useI18n';
 
 type Member = {
     thaiName: string;
     englishName: string;
     email: string;
-    roleEn: string;
     roleTh: string;
     image: string;
     accentClassName: string;
@@ -29,18 +28,16 @@ const MEMBERS: Member[] = [
         thaiName: 'กณิศ บุญยิ่งกูล',
         englishName: 'kanit bunyinkgool',
         email: 'kanit.buny@kmutt.ac.th',
-        roleEn: 'Experience design & trip intelligence',
         roleTh: 'ออกแบบประสบการณ์และระบบแนะนำทริป',
-        image: photoSpotImage,
+        image: waveImage,
         accentClassName: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     },
     {
         thaiName: 'มนัสนันท์ นิลเรือง',
         englishName: 'manassanan nilruang',
         email: 'manatsanan.ninr@kmutt.ac.th',
-        roleEn: 'Frontend craft & product experience',
         roleTh: 'พัฒนา Frontend และประสบการณ์การใช้งาน',
-        image: mountainImage,
+        image: ployImage,
         accentClassName: 'bg-amber-50 text-amber-600 border-amber-100',
     },
 ];
@@ -164,9 +161,11 @@ function MemberCard({
                     <p className="text-sm font-medium capitalize text-primary">
                         {member.englishName}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                        {isThai ? member.roleTh : member.roleEn}
-                    </p>
+                    {isThai && (
+                        <p className="text-sm text-muted-foreground">
+                            {member.roleTh}
+                        </p>
+                    )}
                 </div>
 
                 <a
